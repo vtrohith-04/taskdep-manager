@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, AlertCircle, GitFork, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import { toast } from 'sonner';
+import TaskTemplates from './TaskTemplates';
 
 const defaultForm = {
     title: '',
@@ -17,6 +18,19 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
     const [form, setForm] = useState(defaultForm);
     const [saving, setSaving] = useState(false);
     const [depsOpen, setDepsOpen] = useState(false);
+    const [templatesOpen, setTemplatesOpen] = useState(false);
+
+    const handleSelectTemplate = (template) => {
+        setForm(prev => ({
+            ...prev,
+            title: template.title,
+            description: template.description,
+            status: template.status,
+            priority: template.priority
+        }));
+        setTemplatesOpen(false);
+        toast.success('Template applied!');
+    };
 
     useEffect(() => {
         if (editTask) {
@@ -33,6 +47,7 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
         } else {
             setForm(defaultForm);
             setDepsOpen(false);
+            setTemplatesOpen(false);
         }
     }, [editTask, isOpen]);
 
@@ -96,6 +111,25 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
 
                 {/* Form — scrollable */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+                    {/* Templates - only for new tasks */}
+                    {!editTask && (
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setTemplatesOpen(!templatesOpen)}
+                                className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                            >
+                                {templatesOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                Use Template
+                            </button>
+                            {templatesOpen && (
+                                <div className="mt-2">
+                                    <TaskTemplates onSelectTemplate={handleSelectTemplate} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Title */}
                     <div>
                         <label className={labelCls}>Title *</label>

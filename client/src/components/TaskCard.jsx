@@ -26,7 +26,7 @@ function isDueOverdue(dueDate) {
     return new Date(dueDate) < new Date();
 }
 
-export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete }) {
+export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete, bulkMode, isSelected, onToggleSelect }) {
     const [depsOpen, setDepsOpen] = useState(false);
     // Use effectiveStatus (auto-computed) for display; fall back to stored status
     const displayStatus = task.effectiveStatus || task.status;
@@ -36,10 +36,23 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete 
     const overdue = isDueOverdue(task.dueDate) && displayStatus !== 'Done';
 
     return (
-        <div className={`bg-white dark:bg-slate-900 border rounded-xl p-5 flex flex-col gap-3 hover:shadow-md transition-shadow group ${isBlocked
+        <div className={`bg-white dark:bg-slate-900 border rounded-xl p-5 flex flex-col gap-3 hover:shadow-md transition-shadow group relative ${isBlocked
             ? 'border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/10'
             : 'border-slate-200 dark:border-slate-800'
-            }`}>
+            } ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900' : ''}`}>
+            {/* Bulk selection checkbox */}
+            {bulkMode && (
+                <div className="absolute top-3 right-3 z-10">
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleSelect(task._id)}
+                        className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                    />
+                </div>
+            )}
+
+            {/* Blocked banner */}
             {/* Blocked banner */}
             {isBlocked && task.blockingDeps?.length > 0 && (
                 <div className="flex items-start gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
