@@ -156,6 +156,37 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
 
 
 
+                    {/* Status */}
+                    <div>
+                        <label className={labelCls}>Status</label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                            💡 <span className="font-medium">In Progress</span> auto-activates when due date is within 3 days. <span className="font-medium">Blocked</span> auto-computes from unmet dependencies.
+                        </p>
+                        <select
+                            value={form.status}
+                            onChange={(e) => setForm({ ...form, status: e.target.value })}
+                            className={inputCls}
+                        >
+                            <option value="Todo">Todo</option>
+                            <option value="In Progress">In Progress (can also be auto-set)</option>
+                            <option value="Done">Done</option>
+                        </select>
+                    </div>
+
+                    {/* Priority */}
+                    <div>
+                        <label className={labelCls}>Priority</label>
+                        <select
+                            value={form.priority}
+                            onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                            className={inputCls}
+                        >
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+
                     {/* Due Date */}
                     <div>
                         <label className={labelCls}>Due Date <span className="text-slate-400 font-normal">(optional)</span></label>

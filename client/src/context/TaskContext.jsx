@@ -4,13 +4,33 @@ import { useAuth } from './AuthContext';
 
 const TaskContext = createContext(null);
 
-// Compute whether a task is effectively Blocked based on its dependencies
+// Compute effective status: auto-computes Blocked and In Progress
 export function computeEffectiveStatus(task) {
-    if (!task.dependsOn || task.dependsOn.length === 0) return task.status;
-    const isBlocked = task.dependsOn.some(
-        (dep) => typeof dep === 'object' && dep.status !== 'Done'
-    );
-    return isBlocked ? 'Blocked' : task.status;
+    // First, check if blocked by dependencies
+    if (task.dependsOn && task.dependsOn.length > 0) {
+        const isBlocked = task.dependsOn.some(
+            (dep) => typeof dep === 'object' && dep.status !== 'Done'
+        );
+        if (isBlocked) return 'Blocked';
+    }
+    
+    // If explicitly done, return done
+    if (task.status === 'Done') return 'Done';
+    
+    // If user explicitly set to In Progress, preserve it
+    if (task.status === 'In Progress') return 'In Progress';
+    
+    // Auto-compute In Progress based on due date urgency
+    // Tasks due within 3 days (including overdue) automatically become urgent/In Progress
+    if (task.dueDate) {
+        const daysUntilDue = Math.ceil((new Date(task.dueDate) - new Date()) / 86400000);
+        if (daysUntilDue <= 3 && daysUntilDue > -Infinity) {
+            return 'In Progress';
+        }
+    }
+    
+    // Otherwise, return the user-selected status (typically Todo)
+    return task.status;
 }
 
 // Auto-compute priority from due date proximity

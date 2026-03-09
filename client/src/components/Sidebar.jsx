@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, Sun, Moon, LogOut, ShieldCheck, User, BarChart3, GitBranch } from 'lucide-react';
+import { LayoutDashboard, History, Sun, Moon, LogOut, ShieldCheck, User, BarChart3, GitBranch, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -28,6 +28,10 @@ export default function Sidebar() {
                 <NavLink to="/dashboard" className={linkClass}>
                     <LayoutDashboard size={18} />
                     Dashboard
+                </NavLink>
+                <NavLink to="/kanban" className={linkClass}>
+                    <LayoutGrid size={18} />
+                    Kanban Board
                 </NavLink>
                 <NavLink to="/gantt" className={linkClass}>
                     <BarChart3 size={18} />

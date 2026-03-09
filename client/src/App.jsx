@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import History from './pages/History';
 import GanttView from './pages/GanttView';
 import DependencyGraph from './pages/DependencyGraph';
+import KanbanView from './pages/KanbanView';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -46,6 +47,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <TaskProvider>
               <GanttView />
+            </TaskProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/kanban"
+        element={
+          <ProtectedRoute>
+            <TaskProvider>
+              <KanbanView />
             </TaskProvider>
           </ProtectedRoute>
         }

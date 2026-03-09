@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, GitFork, Pencil, Trash2, RotateCcw, AlertTriangle, Clock, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, Clock, GitFork, Pencil, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 
 const priorityColors = {
     High: 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 dark:from-red-900/40 dark:to-orange-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50 font-semibold',
@@ -27,7 +27,7 @@ function isDueOverdue(dueDate) {
 }
 
 export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete, bulkMode, isSelected, onToggleSelect }) {
-    const [depsOpen, setDepsOpen] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
     // Use effectiveStatus (auto-computed) for display; fall back to stored status
     const displayStatus = task.effectiveStatus || task.status;
     const isBlocked = displayStatus === 'Blocked';
@@ -36,143 +36,234 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete,
     const overdue = isDueOverdue(task.dueDate) && displayStatus !== 'Done';
 
     return (
-        <div className={`bg-white dark:bg-slate-900 border rounded-xl p-6 flex flex-col gap-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative ${isBlocked
-            ? 'border-red-200 dark:border-red-900/50 bg-red-50/40 dark:bg-red-950/20 shadow-sm shadow-red-100 dark:shadow-red-950/50'
-            : 'border-slate-200/70 dark:border-slate-700 shadow-sm hover:shadow-lg'
-            } ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 shadow-lg' : ''}`}>
-            {/* Bulk selection checkbox */}
-            {bulkMode && (
-                <div className="absolute top-3 right-3 z-10">
-                    <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onToggleSelect(task._id)}
-                        className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
-                    />
-                </div>
-            )}
-
-            {/* Blocked banner */}
-            {/* Blocked banner */}
-            {isBlocked && task.blockingDeps?.length > 0 && (
-                <div className="flex items-start gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <AlertTriangle size={13} className="text-red-500 mt-0.5 shrink-0" />
-                    <p className="text-xs text-red-600 dark:text-red-400 leading-snug">
-                        <span className="font-medium">Blocked by: </span>
-                        {task.blockingDeps.join(', ')}
-                    </p>
-                </div>
-            )}
-
-            {/* Title */}
-            <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                {task.title}
-            </h3>
-
-            {/* Description */}
-            {task.description && (
-                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
-                    {task.description}
-                </p>
-            )}
-
-            {/* Badges */}
-            <div className="flex items-center gap-2 flex-wrap pt-1">
-                <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColors[displayStatus] || statusColors.Todo}`}>
-                    {displayStatus}
-                </span>
-                <span className={`text-xs px-3 py-1 rounded-full font-medium ${priorityColors[task.effectivePriority || task.priority] || priorityColors.Medium}`}>
-                    {task.effectivePriority || task.priority}
-                </span>
-            </div>
-
-            {/* Dependencies — collapsible scrollable list */}
-            {task.dependsOn?.length > 0 && (
-                <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                    <button
-                        type="button"
-                        onClick={() => setDepsOpen((o) => !o)}
-                        className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                    >
-                        <span className="flex items-center gap-1.5">
-                            <GitFork size={12} className="shrink-0 text-indigo-400" />
-                            Depends on ({task.dependsOn.length})
-                        </span>
-                        {depsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                    {depsOpen && (
-                        <ul className="max-h-24 overflow-y-auto border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 px-2.5 py-1.5 space-y-1">
-                            {task.dependsOn.map((d) => (
-                                <li key={typeof d === 'object' ? d._id : d} className="text-xs text-slate-600 dark:text-slate-300 truncate">
-                                    • {typeof d === 'object' ? (d.title || d._id) : d}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            )}
-
-            {/* Due Date */}
-            {dueDate && (
-                <div className={`flex items-center gap-1.5 text-xs ${overdue ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                    <Clock size={11} />
-                    <span>{overdue ? 'Overdue · ' : 'Due · '}{dueDate}</span>
-                </div>
-            )}
-
-            {/* Action Button */}
-            <div className="pt-1 pb-1">
-                {displayStatus === 'Done' ? (
-                    <button
-                        onClick={() => onRevert && onRevert(task)}
-                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md active:scale-95"
-                    >
-                        <RotateCcw size={18} />
-                        Revert to Todo
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => onComplete && onComplete(task)}
-                        disabled={isBlocked}
-                        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border ${isBlocked
-                                ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
-                                : 'border-emerald-300 dark:border-emerald-700 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 text-white hover:from-emerald-600 hover:to-teal-600 dark:hover:from-emerald-500 dark:hover:to-teal-500 hover:shadow-lg hover:shadow-emerald-500/20 dark:hover:shadow-emerald-600/20 active:scale-95'
-                            }`}
-                    >
-                        <CheckCircle2 size={18} />
-                        Mark as Complete
-                    </button>
+        <>
+            <div 
+                className={`bg-white dark:bg-slate-900 border rounded-xl p-6 flex flex-col gap-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative cursor-pointer ${isBlocked
+                    ? 'border-red-200 dark:border-red-900/50 bg-red-50/40 dark:bg-red-950/20 shadow-sm shadow-red-100 dark:shadow-red-950/50'
+                    : 'border-slate-200/70 dark:border-slate-700 shadow-sm hover:shadow-lg'
+                    } ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 shadow-lg' : ''}`}
+                onClick={() => !bulkMode && setShowDetails(true)}
+            >
+                {/* Bulk selection checkbox */}
+                {bulkMode && (
+                    <div className="absolute top-3 right-3 z-10">
+                        <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => onToggleSelect(task._id)}
+                            className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                        />
+                    </div>
                 )}
-            </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 mt-auto">
-                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                    <Calendar size={11} />
-                    <span>{createdDate}</span>
+                {/* Title */}
+                <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {task.title}
+                </h3>
+
+                {/* Description */}
+                {task.description && (
+                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                        {task.description}
+                    </p>
+                )}
+
+                {/* Badges */}
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColors[displayStatus] || statusColors.Todo}`}>
+                        {displayStatus}
+                    </span>
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${priorityColors[task.effectivePriority || task.priority] || priorityColors.Medium}`}>
+                        {task.effectivePriority || task.priority}
+                    </span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                    {onEdit && (
+                {/* Due Date */}
+                {dueDate && (
+                    <div className={`flex items-center gap-1.5 text-xs ${overdue ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                        <Clock size={11} />
+                        <span>{overdue ? 'Overdue · ' : 'Due · '}{dueDate}</span>
+                    </div>
+                )}
+
+                {/* Action Button */}
+                <div className="pt-1 pb-1">
+                    {displayStatus === 'Done' ? (
                         <button
-                            onClick={() => onEdit(task)}
-                            className="p-1.5 rounded text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-                            title="Edit task"
+                            onClick={(e) => { e.stopPropagation(); onRevert && onRevert(task); }}
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md active:scale-95"
                         >
-                            <Pencil size={13} />
+                            <RotateCcw size={18} />
+                            Revert to Todo
                         </button>
-                    )}
-                    {onDelete && (
+                    ) : (
                         <button
-                            onClick={() => onDelete(task._id)}
-                            className="p-1.5 rounded text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                            title="Delete task"
+                            onClick={(e) => { e.stopPropagation(); onComplete && onComplete(task); }}
+                            disabled={isBlocked}
+                            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border ${isBlocked
+                                    ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
+                                    : 'border-emerald-300 dark:border-emerald-700 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 text-white hover:from-emerald-600 hover:to-teal-600 dark:hover:from-emerald-500 dark:hover:to-teal-500 hover:shadow-lg hover:shadow-emerald-500/20 dark:hover:shadow-emerald-600/20 active:scale-95'
+                                }`}
                         >
-                            <Trash2 size={13} />
+                            <CheckCircle2 size={18} />
+                            Mark as Complete
                         </button>
                     )}
                 </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 mt-auto">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                        <Calendar size={11} />
+                        <span>{createdDate}</span>
+                        <span className="ml-1 font-mono text-slate-400 dark:text-slate-500">#{String(task._id).slice(-8)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        {onEdit && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+                                className="p-1.5 rounded text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                                title="Edit task"
+                            >
+                                <Pencil size={13} />
+                            </button>
+                        )}
+                        {onDelete && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDelete(task._id); }}
+                                className="p-1.5 rounded text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                title="Delete task"
+                            >
+                                <Trash2 size={13} />
+                            </button>
+                        )}
+                    </div>
+                </div>
             </div>
-        </div>
+
+            {/* Details Modal */}
+            {showDetails && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900">
+                            <h2 className="font-semibold text-slate-800 dark:text-white text-base">Task Details</h2>
+                            <button 
+                                onClick={() => setShowDetails(false)} 
+                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-4">
+                            {/* Title */}
+                            <div>
+                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Title</p>
+                                <h3 className="font-bold text-slate-900 dark:text-white">{task.title}</h3>
+                            </div>
+
+                            {/* ID */}
+                            <div>
+                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Task ID</p>
+                                <p className="font-mono text-sm text-slate-700 dark:text-slate-300">{task._id}</p>
+                            </div>
+
+                            {/* Status & Priority */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Status</p>
+                                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColors[displayStatus]}`}>
+                                        {displayStatus}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Priority</p>
+                                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${priorityColors[task.effectivePriority || task.priority]}`}>
+                                        {task.effectivePriority || task.priority}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Blocked Warning */}
+                            {isBlocked && task.blockingDeps?.length > 0 && (
+                                <div className="flex items-start gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <AlertTriangle size={13} className="text-red-500 mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-medium text-red-600 dark:text-red-400">Blocked by:</p>
+                                        <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                                            {task.blockingDeps.join(', ')}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dependencies */}
+                            {task.dependsOn?.length > 0 && (
+                                <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                    <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                                            <GitFork size={14} className="text-indigo-400" />
+                                            Depends on ({task.dependsOn.length})
+                                        </p>
+                                    </div>
+                                    <ul className="max-h-40 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700 px-3 py-2">
+                                        {task.dependsOn.map((d) => (
+                                            <li key={typeof d === 'object' ? d._id : d} className="text-xs text-slate-600 dark:text-slate-300 py-1.5">
+                                                {typeof d === 'object' ? (d.title || d._id) : d}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Description */}
+                            {task.description && (
+                                <div>
+                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Description</p>
+                                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{task.description}</p>
+                                </div>
+                            )}
+
+                            {/* Due Date */}
+                            {dueDate && (
+                                <div>
+                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Due Date</p>
+                                    <p className={`text-xs ${overdue ? 'text-red-500 dark:text-red-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                                        {overdue ? '⚠️ Overdue · ' : ''}{dueDate}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Created Date */}
+                            <div>
+                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Created</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-300">{createdDate}</p>
+                            </div>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+                            {onEdit && (
+                                <button
+                                    onClick={() => { setShowDetails(false); onEdit(task); }}
+                                    className="flex-1 px-4 py-2 text-sm font-medium bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+                                >
+                                    Edit Task
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setShowDetails(false)}
+                                className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
