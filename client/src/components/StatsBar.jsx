@@ -19,18 +19,18 @@ export default function StatsBar() {
     }, [tasks]);
 
     return (
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-5 mb-8">
             {stats.map((s) => (
                 <div
                     key={s.label}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center gap-4"
+                    className="bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700/70 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group"
                 >
-                    <div className={`w-10 h-10 rounded-lg ${s.bg} flex items-center justify-center`}>
-                        <s.icon size={20} className={s.color} />
+                    <div className={`w-12 h-12 rounded-lg ${s.bg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                        <s.icon size={24} className={s.color} />
                     </div>
                     <div>
-                        <p className="text-2xl font-bold text-slate-800 dark:text-white">{s.value}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{s.label}</p>
+                        <p className="text-3xl font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{s.value}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">{s.label}</p>
                     </div>
                 </div>
             ))}

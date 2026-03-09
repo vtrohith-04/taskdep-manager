@@ -60,11 +60,17 @@ export default function Dashboard() {
     };
 
     const handleRevert = async (task) => {
-        await updateTask(task._id, { ...task, status: 'Todo', dependsOn: task.dependsOn?.map(d => d._id || d) });
+        await updateTask(task._id, { 
+            status: 'Todo',
+            dependsOn: task.dependsOn?.map(d => d._id || d) || []
+        });
     };
 
     const handleComplete = async (task) => {
-        await updateTask(task._id, { ...task, status: 'Done', dependsOn: task.dependsOn?.map(d => d._id || d) });
+        await updateTask(task._id, { 
+            status: 'Done',
+            dependsOn: task.dependsOn?.map(d => d._id || d) || []
+        });
     };
 
     const handleExport = async () => {
@@ -122,7 +128,10 @@ export default function Dashboard() {
             await Promise.all(Array.from(selectedTasks).map(async (id) => {
                 const task = tasks.find(t => t._id === id);
                 if (task) {
-                    await updateTask(id, { ...task, status: 'Done', dependsOn: task.dependsOn?.map(d => d._id || d) });
+                    await updateTask(id, { 
+                        status: 'Done',
+                        dependsOn: task.dependsOn?.map(d => d._id || d) || []
+                    });
                 }
             }));
             setSelectedTasks(new Set());
@@ -135,32 +144,32 @@ export default function Dashboard() {
     return (
         <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
             <Sidebar />
-            <main className="ml-56 flex-1 p-6">
+            <main className="ml-56 flex-1 p-8">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Task Dependencies</h1>
-                        <p className="text-sm text-indigo-500 mt-0.5">Manage tasks and their dependency relationships</p>
-                        <p className="text-xs text-slate-400 mt-1">💡 Keyboard shortcuts: Ctrl+N (New task), Ctrl+/ (Search)</p>
+                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Task Dependencies</h1>
+                        <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1 font-medium">Manage tasks and their dependency relationships</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">💡 Keyboard shortcuts: Ctrl+N (New task), Ctrl+/ (Search)</p>
                     </div>
                     <div className="flex gap-3">
                         {bulkMode && selectedTasks.size > 0 && (
                             <>
                                 <button
                                     onClick={handleBulkComplete}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                    className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                                 >
                                     Complete ({selectedTasks.size})
                                 </button>
                                 <button
                                     onClick={handleBulkDelete}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                    className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                                 >
                                     Delete ({selectedTasks.size})
                                 </button>
                                 <button
                                     onClick={clearSelection}
-                                    className="px-4 py-2.5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                    className="px-5 py-3 bg-slate-400 hover:bg-slate-500 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                                 >
                                     Clear
                                 </button>
@@ -168,26 +177,26 @@ export default function Dashboard() {
                         )}
                         <button
                             onClick={() => setBulkMode(!bulkMode)}
-                            className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-colors shadow-sm ${
+                            className={`px-5 py-3 text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 ${
                                 bulkMode
-                                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
-                                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-300'
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white'
+                                    : 'bg-slate-300 hover:bg-slate-400 text-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-100'
                             }`}
                         >
                             {bulkMode ? 'Exit Bulk Mode' : 'Bulk Select'}
                         </button>
                         <button
                             onClick={handleExport}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                            className="flex items-center gap-2 px-5 py-3 bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                         >
-                            <Download size={16} />
+                            <Download size={18} />
                             Export CSV
                         </button>
                         <button
                             onClick={openAdd}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                         >
-                            <Plus size={16} />
+                            <Plus size={18} />
                             New Task
                         </button>
                     </div>
@@ -205,7 +214,7 @@ export default function Dashboard() {
 
                 {/* Task Grid */}
                 {loading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[...Array(6)].map((_, i) => (
                             <TaskCardSkeleton key={i} />
                         ))}
@@ -215,7 +224,7 @@ export default function Dashboard() {
                         <p className="text-sm">{tasks.length === 0 ? 'No tasks yet. Create your first task!' : 'No tasks match your filters.'}</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filtered.map((task) => (
                             <TaskCard
                                 key={task._id}

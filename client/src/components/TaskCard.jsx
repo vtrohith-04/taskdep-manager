@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { Calendar, GitFork, Pencil, Trash2, RotateCcw, AlertTriangle, Clock, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const priorityColors = {
-    High: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-    Medium: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-    Low: 'bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400',
+    High: 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 dark:from-red-900/40 dark:to-orange-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50 font-semibold',
+    Medium: 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 dark:from-amber-900/40 dark:to-yellow-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 font-semibold',
+    Low: 'bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-700 dark:from-sky-900/40 dark:to-cyan-900/40 dark:text-sky-300 border border-sky-200 dark:border-sky-800/50 font-semibold',
 };
 
 const statusColors = {
-    Done: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-    Todo: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-    'In Progress': 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-    Blocked: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+    Done: 'bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 dark:from-emerald-900/40 dark:to-green-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50',
+    Todo: 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-700 dark:from-slate-800 dark:to-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700',
+    'In Progress': 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 dark:from-indigo-900/40 dark:to-purple-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50',
+    Blocked: 'bg-gradient-to-r from-red-50 to-rose-50 text-red-700 dark:from-red-900/40 dark:to-rose-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50',
 };
 
 function formatDate(dateStr) {
@@ -36,10 +36,10 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete,
     const overdue = isDueOverdue(task.dueDate) && displayStatus !== 'Done';
 
     return (
-        <div className={`bg-white dark:bg-slate-900 border rounded-xl p-5 flex flex-col gap-3 hover:shadow-md transition-shadow group relative ${isBlocked
-            ? 'border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/10'
-            : 'border-slate-200 dark:border-slate-800'
-            } ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900' : ''}`}>
+        <div className={`bg-white dark:bg-slate-900 border rounded-xl p-6 flex flex-col gap-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative ${isBlocked
+            ? 'border-red-200 dark:border-red-900/50 bg-red-50/40 dark:bg-red-950/20 shadow-sm shadow-red-100 dark:shadow-red-950/50'
+            : 'border-slate-200/70 dark:border-slate-700 shadow-sm hover:shadow-lg'
+            } ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 shadow-lg' : ''}`}>
             {/* Bulk selection checkbox */}
             {bulkMode && (
                 <div className="absolute top-3 right-3 z-10">
@@ -65,23 +65,23 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete,
             )}
 
             {/* Title */}
-            <h3 className="font-semibold text-slate-800 dark:text-white text-sm leading-snug line-clamp-2">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 {task.title}
             </h3>
 
             {/* Description */}
             {task.description && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
                     {task.description}
                 </p>
             )}
 
             {/* Badges */}
-            <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-xs px-2 py-0.5 rounded font-medium ${statusColors[displayStatus] || statusColors.Todo}`}>
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColors[displayStatus] || statusColors.Todo}`}>
                     {displayStatus}
                 </span>
-                <span className={`text-xs px-2 py-0.5 rounded font-medium ${priorityColors[task.effectivePriority || task.priority] || priorityColors.Medium}`}>
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${priorityColors[task.effectivePriority || task.priority] || priorityColors.Medium}`}>
                     {task.effectivePriority || task.priority}
                 </span>
             </div>
@@ -125,21 +125,21 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete,
                 {displayStatus === 'Done' ? (
                     <button
                         onClick={() => onRevert && onRevert(task)}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-medium text-sm transition-colors border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md active:scale-95"
                     >
-                        <RotateCcw size={16} />
+                        <RotateCcw size={18} />
                         Revert to Todo
                     </button>
                 ) : (
                     <button
                         onClick={() => onComplete && onComplete(task)}
                         disabled={isBlocked}
-                        className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-medium text-sm transition-colors border ${isBlocked
-                                ? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                                : 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border ${isBlocked
+                                ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
+                                : 'border-emerald-300 dark:border-emerald-700 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 text-white hover:from-emerald-600 hover:to-teal-600 dark:hover:from-emerald-500 dark:hover:to-teal-500 hover:shadow-lg hover:shadow-emerald-500/20 dark:hover:shadow-emerald-600/20 active:scale-95'
                             }`}
                     >
-                        <CheckCircle2 size={16} />
+                        <CheckCircle2 size={18} />
                         Mark as Complete
                     </button>
                 )}

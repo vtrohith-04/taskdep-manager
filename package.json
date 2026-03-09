@@ -1,12 +1,22 @@
 {
   "name": "dependency-manger",
   "version": "1.0.0",
-  "description": "",
+  "description": "Task Dependency Manager - Full-stack web application",
   "main": "index.js",
   "scripts": {
+    "start": "powershell -ExecutionPolicy Bypass -File run.ps1",
+    "stop": "powershell -ExecutionPolicy Bypass -File stop.ps1",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "build": "cd client && npm run build",
+    "preview": "cd client && npm run preview",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "clean": "rd /s /q node_modules server\\node_modules client\\node_modules 2>nul || echo Cleaned",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["task-management", "dependency", "react", "nodejs", "mongodb"],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
 }

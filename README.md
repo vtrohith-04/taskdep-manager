@@ -48,7 +48,46 @@ A modern, full-stack web application for managing complex project tasks with dep
 - **MongoDB** (local installation or MongoDB Atlas)
 - **npm** or **yarn** package manager
 
-### Installation
+### Quick Start (Recommended)
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/taskdep.git
+   cd taskdep
+   ```
+
+2. **Install all dependencies**
+   ```bash
+   npm run install-all
+   ```
+
+3. **Environment Setup**
+   ```bash
+   cd server
+   cp .env.example .env
+   ```
+
+   Edit `.env` with your configuration:
+   ```env
+   PORT=5000
+   MONGO_URI=mongodb://localhost:27017/task-dependency-manager
+   JWT_SECRET=your-super-secret-jwt-key-change-in-production
+   ```
+
+4. **Start MongoDB**
+   - **Local MongoDB**: Ensure MongoDB is running on port 27017
+   - **MongoDB Atlas**: Update `MONGO_URI` with your Atlas connection string
+
+5. **Launch the application**
+   ```bash
+   npm start
+   ```
+   This will:
+   - Check prerequisites and install missing dependencies
+   - Start both server and client in one terminal
+   - Automatically open your browser at `http://localhost:5173`
+
+### Manual Installation (Alternative)
 
 1. **Clone the repository**
    ```bash
@@ -144,6 +183,19 @@ taskdep/
 ```
 
 ## 🔧 Available Scripts
+
+### Root (Project-wide)
+- `npm start` - Launch both servers and open browser (recommended)
+- `npm run stop` - Stop all running processes
+- `npm run dev` - Run both servers concurrently (no browser auto-open)
+- `npm run install-all` - Install dependencies for root, server, and client
+- `npm run build` - Build client for production
+- `npm run preview` - Preview production build
+- `npm run clean` - Remove all node_modules folders
+
+**PowerShell Scripts** (Windows):
+- `.\run.ps1` - Same as `npm start` but with enhanced checks
+- `.\stop.ps1` - Same as `npm run stop`
 
 ### Client
 - `npm run dev` - Start development server
