@@ -15,6 +15,11 @@ const taskSchema = new mongoose.Schema(
             default: 'Medium',
         },
         dependsOn: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+        attachments: [{
+            url: { type: String, required: true },
+            publicId: { type: String, required: true },
+            originalName: { type: String }
+        }],
         owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         deleted: { type: Boolean, default: false },
         completedAt: { type: Date, default: null },
@@ -22,5 +27,7 @@ const taskSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
+taskSchema.index({ owner: 1, deleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Task', taskSchema);

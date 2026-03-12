@@ -1,78 +1,61 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { TaskProvider } from './context/TaskContext';
 import { useAuth } from './context/AuthContext';
 import { Toaster } from 'sonner';
 import ErrorBoundary from './components/ErrorBoundary';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import History from './pages/History';
-import GanttView from './pages/GanttView';
-import DependencyGraph from './pages/DependencyGraph';
-import KanbanView from './pages/KanbanView';
+import Sidebar from './components/Sidebar';
 
-function ProtectedRoute({ children }) {
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const History = lazy(() => import('./pages/History'));
+const GanttView = lazy(() => import('./pages/GanttView'));
+const DependencyGraph = lazy(() => import('./pages/DependencyGraph'));
+const KanbanView = lazy(() => import('./pages/KanbanView'));
+
+function ProtectedLayout() {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  return (
+    <TaskProvider>
+      <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+         <main className={`flex-1 overflow-x-hidden transition-all duration-300 ml-0 ${collapsed ? 'md:ml-20' : 'md:ml-56'}`}>
+           <Outlet />
+         </main>
+      </div>
+    </TaskProvider>
+  );
 }
+
+const LoadingSpinner = () => (
+    <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="animate-spin text-4xl">⚙️</div>
+    </div>
+);
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <TaskProvider>
-              <Dashboard />
-            </TaskProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/history"
-        element={
-          <ProtectedRoute>
-            <TaskProvider>
-              <History />
-            </TaskProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/gantt"
-        element={
-          <ProtectedRoute>
-            <TaskProvider>
-              <GanttView />
-            </TaskProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/kanban"
-        element={
-          <ProtectedRoute>
-            <TaskProvider>
-              <KanbanView />
-            </TaskProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/graph"
-        element={
-          <ProtectedRoute>
-            <TaskProvider>
-              <DependencyGraph />
-            </TaskProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route element={<ProtectedLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/gantt" element={<GanttView />} />
+          <Route path="/kanban" element={<KanbanView />} />
+          <Route path="/graph" element={<DependencyGraph />} />
+        </Route>
+        
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

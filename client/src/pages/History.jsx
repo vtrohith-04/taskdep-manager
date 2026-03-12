@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { RotateCcw, History as HistoryIcon } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
 import TaskCard from '../components/TaskCard';
 import { useTasks } from '../context/TaskContext';
 
@@ -10,9 +9,7 @@ export default function History() {
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-            <Sidebar />
-            <main className="ml-56 flex-1 p-6">
+        <div className="p-4 pt-16 md:pt-6 md:p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
                         <HistoryIcon size={18} className="text-indigo-500" />
@@ -41,7 +38,6 @@ export default function History() {
                         ))}
                     </div>
                 )}
-            </main>
         </div>
     );
 }

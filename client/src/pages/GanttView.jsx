@@ -11,8 +11,8 @@ import {
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { Bar } from 'react-chartjs-2';
-import Sidebar from '../components/Sidebar';
 import { useTasks } from '../context/TaskContext';
+import { useTheme } from '../context/ThemeContext';
 import { Calendar, AlertCircle, CheckCircle2, Zap } from 'lucide-react';
 
 ChartJS.register(
@@ -94,6 +94,7 @@ function buildGanttData(tasks) {
 
 export default function GanttView() {
   const { tasks, loading } = useTasks();
+  const { dark } = useTheme();
 
   const { chartData, options } = useMemo(() => {
     const { labels, bars, colors, borderColors, taskMeta, minTime, maxTime } = buildGanttData(tasks);
@@ -175,7 +176,7 @@ export default function GanttView() {
           ticks: { 
             maxTicksLimit: 12,
             font: { size: 11, weight: '500' },
-            color: 'rgba(100, 116, 139, 0.8)',
+            color: dark ? 'rgba(148, 163, 184, 0.6)' : 'rgba(100, 116, 139, 0.8)',
           },
         },
         y: {
@@ -183,7 +184,7 @@ export default function GanttView() {
           ticks: { 
             font: { size: 11, weight: '600' }, 
             maxRotation: 0,
-            color: 'rgba(15, 23, 42, 0.7)',
+            color: dark ? 'rgba(226, 232, 240, 0.8)' : 'rgba(15, 23, 42, 0.7)',
             padding: 12,
           },
         },
@@ -191,12 +192,10 @@ export default function GanttView() {
     };
 
     return { chartData: data, options: opts };
-  }, [tasks]);
+  }, [tasks, dark]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Sidebar />
-      <main className="ml-56 flex-1 p-8 overflow-auto">
+    <div className="p-4 pt-16 md:pt-8 md:p-8 overflow-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gantt Chart</h1>
@@ -204,7 +203,7 @@ export default function GanttView() {
         </div>
 
         {/* Legend */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="w-4 h-4 rounded-md bg-emerald-500"></div>
             <div>
@@ -280,7 +279,6 @@ export default function GanttView() {
             </div>
           </div>
         )}
-      </main>
     </div>
   );
 }

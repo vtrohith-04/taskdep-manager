@@ -5,7 +5,7 @@ const priorities = ['All Priority', 'High', 'Medium', 'Low'];
 
 export default function SearchFilters({ search, setSearch, statusFilter, setStatusFilter, priorityFilter, setPriorityFilter }) {
     return (
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-8">
             {/* Search */}
             <div className="relative flex-1">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" />

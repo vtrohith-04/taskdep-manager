@@ -19,7 +19,7 @@ export default function StatsBar() {
     }, [tasks]);
 
     return (
-        <div className="grid grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5 mb-8">
             {stats.map((s) => (
                 <div
                     key={s.label}

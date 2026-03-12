@@ -1,8 +1,18 @@
 import { useState, useMemo } from 'react';
-import { Plus, Calendar, AlertTriangle } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
+import { Plus, Calendar, AlertTriangle, GripVertical } from 'lucide-react';
+import {
+    DndContext,
+    DragOverlay,
+    pointerWithin,
+    rectIntersection,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import TaskModal from '../components/TaskModal';
 import { useTasks } from '../context/TaskContext';
+import { toast } from 'sonner';
 
 const statusConfig = {
     Todo: {
@@ -45,26 +55,44 @@ const priorityColors = {
     Low: 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800',
 };
 
-function TaskCardKanban({ task, onEdit, onDelete }) {
+function DraggableTaskCard({ task, onEdit, onDelete }) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: task._id,
+        data: { task },
+    });
+
+    const style = transform
+        ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+        : {};
+
     const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
     const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.effectiveStatus !== 'Done';
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-lg p-2.5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group cursor-pointer">
-            {/* Title */}
-            <h4 className="font-semibold text-xs text-slate-800 dark:text-white line-clamp-2 mb-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
-                {task.title}
-            </h4>
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes} 
+            {...listeners}
+            className={`bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 shadow-xl scale-105' : ''}`}
+        >
+            {/* Drag handle + Title */}
+            <div className="flex items-start gap-1.5 mb-1.5">
+                <GripVertical size={14} className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <h4 className="font-semibold text-xs text-slate-800 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex-1">
+                    {task.title}
+                </h4>
+            </div>
 
             {/* Description */}
             {task.description && (
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mb-1.5">
+                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mb-1.5 ml-5">
                     {task.description}
                 </p>
             )}
 
             {/* Priority badge */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 ml-5">
                 <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priorityColors[task.effectivePriority || task.priority]}`}>
                     {task.effectivePriority || task.priority}
                 </span>
@@ -79,14 +107,14 @@ function TaskCardKanban({ task, onEdit, onDelete }) {
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                        onClick={() => onEdit(task)}
+                        onClick={(e) => { e.stopPropagation(); onEdit(task); }}
                         className="p-1 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors text-xs"
                         title="Edit"
                     >
                         ✎
                     </button>
                     <button
-                        onClick={() => onDelete(task._id)}
+                        onClick={(e) => { e.stopPropagation(); onDelete(task._id); }}
                         className="p-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs"
                         title="Delete"
                     >
@@ -98,9 +126,16 @@ function TaskCardKanban({ task, onEdit, onDelete }) {
     );
 }
 
-function KanbanColumn({ status, tasks, onEdit, onDelete, config }) {
+function DroppableColumn({ status, tasks, onEdit, onDelete, config }) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: status,
+    });
+
     return (
-        <div className={`w-72 border rounded-xl overflow-hidden flex flex-col bg-white dark:bg-slate-900 shadow-lg h-[540px] ${config.borderColor}`}>
+        <div
+            ref={setNodeRef}
+            className={`w-72 border rounded-xl overflow-hidden flex flex-col bg-white dark:bg-slate-900 shadow-lg h-[540px] ${config.borderColor} transition-all duration-200 ${isOver ? 'ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-slate-950 scale-[1.02]' : ''}`}
+        >
             {/* Header */}
             <div className={`${config.headerBg} px-3.5 py-2.5 flex items-center gap-2 border-b ${config.borderColor} shrink-0`}>
                 <div className={`w-2.5 h-2.5 rounded-full ${config.dotColor}`}></div>
@@ -111,14 +146,14 @@ function KanbanColumn({ status, tasks, onEdit, onDelete, config }) {
             </div>
 
             {/* Content - Scrollable */}
-            <div className={`flex-1 overflow-y-auto p-3 space-y-2.5 ${config.color}`}>
+            <div className={`flex-1 overflow-y-auto p-3 space-y-2.5 ${config.color} ${isOver ? 'bg-opacity-70' : ''}`}>
                 {tasks.length === 0 ? (
-                    <div className="flex items-center justify-center h-32 text-slate-400 text-sm">
-                        No tasks
+                    <div className={`flex items-center justify-center h-32 text-sm rounded-lg border-2 border-dashed transition-colors ${isOver ? 'border-indigo-400 text-indigo-400' : 'border-transparent text-slate-400'}`}>
+                        {isOver ? 'Drop here' : 'No tasks'}
                     </div>
                 ) : (
                     tasks.map((task) => (
-                        <TaskCardKanban
+                        <DraggableTaskCard
                             key={task._id}
                             task={task}
                             onEdit={onEdit}
@@ -131,10 +166,20 @@ function KanbanColumn({ status, tasks, onEdit, onDelete, config }) {
     );
 }
 
+// Statuses where user can manually drop tasks (Blocked is auto-computed, skip it)
+const droppableStatuses = ['Todo', 'In Progress', 'Done'];
+
 export default function KanbanView() {
     const { tasks, loading, deleteTask, updateTask } = useTasks();
     const [modalOpen, setModalOpen] = useState(false);
     const [editTask, setEditTask] = useState(null);
+    const [activeTask, setActiveTask] = useState(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: { distance: 8 },
+        })
+    );
 
     const groupedTasks = useMemo(() => {
         const grouped = {
@@ -154,20 +199,9 @@ export default function KanbanView() {
         return grouped;
     }, [tasks]);
 
-    const openAdd = () => {
-        setEditTask(null);
-        setModalOpen(true);
-    };
-
-    const openEdit = (task) => {
-        setEditTask(task);
-        setModalOpen(true);
-    };
-
-    const closeModal = () => {
-        setModalOpen(false);
-        setEditTask(null);
-    };
+    const openAdd = () => { setEditTask(null); setModalOpen(true); };
+    const openEdit = (task) => { setEditTask(task); setModalOpen(true); };
+    const closeModal = () => { setModalOpen(false); setEditTask(null); };
 
     const handleDelete = async (id) => {
         if (window.confirm('Delete this task?')) {
@@ -175,16 +209,54 @@ export default function KanbanView() {
         }
     };
 
+    const handleDragStart = (event) => {
+        const task = event.active.data?.current?.task;
+        setActiveTask(task || null);
+    };
+
+    const handleDragEnd = async (event) => {
+        setActiveTask(null);
+        const { active, over } = event;
+        if (!over) return;
+
+        const taskId = active.id;
+        const newStatus = over.id;
+
+        // Only allow dropping on valid status columns (not Blocked)
+        if (!droppableStatuses.includes(newStatus)) return;
+
+        const task = tasks.find(t => t._id === taskId);
+        if (!task) return;
+
+        const currentStatus = task.effectiveStatus || task.status;
+        if (currentStatus === newStatus) return;
+
+        // Don't allow moving blocked tasks to non-blocked statuses manually
+        // (they'll unblock automatically when deps are done)
+        if (currentStatus === 'Blocked' && newStatus !== 'Done') {
+            toast.error('This task is blocked by unfinished dependencies');
+            return;
+        }
+
+        try {
+            await updateTask(taskId, {
+                status: newStatus,
+                dependsOn: task.dependsOn?.map(d => d._id || d) || [],
+            });
+            toast.success(`Moved to ${newStatus}`);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to update task');
+        }
+    };
+
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-            <Sidebar />
-            <main className="ml-56 flex-1 p-7">
-                {/* Header */}
+        <div className="p-4 pt-16 md:pt-7 md:p-7">
+            {/* Header */}
                 <div className="flex items-center justify-between mb-7">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Kanban Board</h1>
                         <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                            Organize tasks by status and track progress.
+                            Drag and drop tasks between columns to update status
                         </p>
                     </div>
                     <button
@@ -203,23 +275,42 @@ export default function KanbanView() {
                         Loading tasks...
                     </div>
                 ) : (
-                    <div className="flex gap-5 overflow-x-auto pb-3">
-                        {Object.entries(statusConfig).map(([status, config]) => (
-                            <KanbanColumn
-                                key={status}
-                                status={status}
-                                tasks={groupedTasks[status] || []}
-                                onEdit={openEdit}
-                                onDelete={handleDelete}
-                                config={config}
-                            />
-                        ))}
-                    </div>
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={rectIntersection}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <div className="flex gap-5 overflow-x-auto pb-3">
+                            {Object.entries(statusConfig).map(([status, config]) => (
+                                <DroppableColumn
+                                    key={status}
+                                    status={status}
+                                    tasks={groupedTasks[status] || []}
+                                    onEdit={openEdit}
+                                    onDelete={handleDelete}
+                                    config={config}
+                                />
+                            ))}
+                        </div>
+                        <DragOverlay>
+                            {activeTask && (
+                                <div className="bg-white dark:bg-slate-900 rounded-lg p-2.5 border-2 border-indigo-400 shadow-2xl w-72 opacity-90">
+                                    <h4 className="font-semibold text-xs text-slate-800 dark:text-white line-clamp-2">
+                                        {activeTask.title}
+                                    </h4>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium mt-1 inline-block ${priorityColors[activeTask.effectivePriority || activeTask.priority]}`}>
+                                        {activeTask.effectivePriority || activeTask.priority}
+                                    </span>
+                                </div>
+                            )}
+                        </DragOverlay>
+                    </DndContext>
                 )}
 
                 {/* Stats Footer */}
                 {!loading && (
-                    <div className="mt-6 grid grid-cols-4 gap-3">
+                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {Object.entries(statusConfig).map(([status, config]) => (
                             <div key={status} className={`p-3 rounded-lg border ${config.borderColor} ${config.color}`}>
                                 <div className="flex items-center gap-2 mb-1.5">
@@ -233,8 +324,6 @@ export default function KanbanView() {
                         ))}
                     </div>
                 )}
-            </main>
-
             <TaskModal isOpen={modalOpen} onClose={closeModal} editTask={editTask} />
         </div>
     );

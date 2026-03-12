@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Download } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
+import { Plus, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import StatsBar from '../components/StatsBar';
 import SearchFilters from '../components/SearchFilters';
 import TaskCard from '../components/TaskCard';
@@ -19,6 +18,8 @@ export default function Dashboard() {
     const [priorityFilter, setPriorityFilter] = useState('All Priority');
     const [selectedTasks, setSelectedTasks] = useState(new Set());
     const [bulkMode, setBulkMode] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -50,6 +51,18 @@ export default function Dashboard() {
             return matchSearch && matchStatus && matchPriority;
         });
     }, [tasks, search, statusFilter, priorityFilter]);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter, priorityFilter]);
+
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    const paginatedTasks = filtered.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const openAdd = () => { setEditTask(null); setModalOpen(true); };
     const openEdit = (task) => { setEditTask(task); setModalOpen(true); };
@@ -142,17 +155,15 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-            <Sidebar />
-            <main className="ml-56 flex-1 p-8">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+        <div className="p-4 pt-16 md:pt-8 md:p-8 max-w-7xl mx-auto">
+            {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Task Dependencies</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Task Dependencies</h1>
                         <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1 font-medium">Manage tasks and their dependency relationships</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">💡 Keyboard shortcuts: Ctrl+N (New task), Ctrl+/ (Search)</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 hidden sm:block">💡 Keyboard shortcuts: Ctrl+N (New task), Ctrl+/ (Search)</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
                         {bulkMode && selectedTasks.size > 0 && (
                             <>
                                 <button
@@ -172,6 +183,12 @@ export default function Dashboard() {
                                     className="px-5 py-3 bg-slate-400 hover:bg-slate-500 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                                 >
                                     Clear
+                                </button>
+                                <button
+                                    onClick={selectAllFiltered}
+                                    className="px-5 py-3 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+                                >
+                                    Select All
                                 </button>
                             </>
                         )}
@@ -224,24 +241,59 @@ export default function Dashboard() {
                         <p className="text-sm">{tasks.length === 0 ? 'No tasks yet. Create your first task!' : 'No tasks match your filters.'}</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filtered.map((task) => (
-                            <TaskCard
-                                key={task._id}
-                                task={task}
-                                onEdit={openEdit}
-                                onDelete={handleDelete}
-                                onRevert={handleRevert}
-                                onComplete={handleComplete}
-                                bulkMode={bulkMode}
-                                isSelected={selectedTasks.has(task._id)}
-                                onToggleSelect={toggleTaskSelection}
-                            />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                        {paginatedTasks.map((task, index) => (
+                            <div key={task._id} className="animate-slideUp" style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}>
+                                <TaskCard
+                                    task={task}
+                                    onEdit={openEdit}
+                                    onDelete={handleDelete}
+                                    onRevert={handleRevert}
+                                    onComplete={handleComplete}
+                                    bulkMode={bulkMode}
+                                    isSelected={selectedTasks.has(task._id)}
+                                    onToggleSelect={toggleTaskSelection}
+                                />
+                            </div>
                         ))}
                     </div>
                 )}
-            </main>
 
+                {/* Pagination */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-9 h-9 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                                    page === currentPage
+                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25'
+                                        : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                        <span className="ml-3 text-xs text-slate-500 dark:text-slate-400">
+                            {filtered.length} task{filtered.length !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+                )}
             <TaskModal isOpen={modalOpen} onClose={closeModal} editTask={editTask} />
         </div>
     );

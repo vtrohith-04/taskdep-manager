@@ -207,7 +207,39 @@ taskdep/
 - `npm run dev` - Start development server with nodemon
 - `npm start` - Start production server
 
-## 🤝 Contributing
+## � API Testing with Thunder Client
+
+### Quick Start
+We provide a pre-configured **Thunder Client collection** for easy API testing:
+
+1. **Install Thunder Client** VS Code extension
+2. **Import Collection**: `thunder-collection_TaskDep-API.json`
+3. **Set Variables**: 
+   - `baseUrl`: http://localhost:5000
+   - `authToken`: (Get from login response)
+   - `taskId`: (Get from create task response)
+4. **Start Testing**: Run requests from the collection
+
+### What's Included
+- ✅ **20+ Pre-configured Requests**
+- ✅ **Authentication Flow** (Register, Login, Get User)
+- ✅ **Full CRUD Operations** (Create, Read, Update, Delete tasks)
+- ✅ **Advanced Features** (Dependencies, Export, History)
+- ✅ **Error Handling Tests** (Validation, Auth, Circular dependencies)
+- ✅ **Test Assertions** (Automatic test verification)
+
+### Documentation
+See **[THUNDER_CLIENT_TESTING.md](THUNDER_CLIENT_TESTING.md)** for:
+- Detailed setup guide
+- Step-by-step testing examples
+- Troubleshooting tips
+- cURL command alternatives
+- Test scenarios
+
+### API Documentation
+See **[WEB_DEVELOPMENT_RUBRIC.md](WEB_DEVELOPMENT_RUBRIC.md)** for comprehensive rating and implementation details.
+
+## �🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -215,7 +247,49 @@ taskdep/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+## � Advanced Implementation Plans
+
+### Complete Roadmap for Project Enhancement
+We have prepared comprehensive guides to achieve **5/5 rating** on all advanced criteria:
+
+#### Core Documentation
+- **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** - Complete 6-phase roadmap (50+ pages)
+  - Phase 1: Testing Setup (Unit & Integration Tests)
+  - Phase 2: Pagination & Database Optimization  
+  - Phase 3: Third-Party Integrations (Cloudinary, Maps, SendGrid)
+  - Phase 4: Performance Optimization (Code Splitting, Caching)
+  - Phase 5: Production Deployment (Vercel + Render + Domain)
+  - Phase 6: Documentation & Final Touches
+
+- **[PROGRESS_CHECKLIST.md](PROGRESS_CHECKLIST.md)** - Detailed checkbox tracker for every task
+
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - One-page quick commands and checklists
+
+#### Evaluation & Testing
+- **[WEB_DEVELOPMENT_RUBRIC.md](WEB_DEVELOPMENT_RUBRIC.md)** - Current project evaluation (4.4/5)
+- **[THUNDER_CLIENT_TESTING.md](THUNDER_CLIENT_TESTING.md)** - Complete API testing guide
+- **[API_TESTING_GUIDE.md](API_TESTING_GUIDE.md)** - API documentation and testing resources
+
+### Next Steps to Achieve 5/5
+
+```
+CURRENT STATUS:
+  UI/UX Refinement: 5/5 ✅ (Excellent)
+  Advanced Logic: 2.5/5 ⚠️  (Missing pagination & integrations)
+  Performance & Testing: 1/5 ❌ (No tests yet)
+  Production Deployment: 0/5 ❌ (Not deployed)
+
+IMPLEMENTATION TIMELINE:
+  Week 1:  Testing + Pagination        (16 hours)
+  Week 2:  Integrations + Performance   (16 hours)
+  Week 3:  Deployment + Documentation   (16 hours)
+  ────────────────────────────────────────────
+  Total: ~48 hours over 3-4 weeks       → 5/5 ⭐⭐⭐⭐⭐
+```
+
+Start with **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** for one-page overview, then dive into **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** for detailed implementation.
+
+## �📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

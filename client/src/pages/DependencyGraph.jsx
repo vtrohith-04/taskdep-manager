@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { GitBranch, Info } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
 import { useTasks } from '../context/TaskContext';
+import { useTheme } from '../context/ThemeContext';
 import { getPredecessors, getLayers, getCriticalPath } from '../utils/graphUtils';
 
 const NODE_WIDTH = 160;
@@ -9,7 +9,7 @@ const NODE_HEIGHT = 44;
 const LAYER_GAP = 80;
 const NODE_GAP = 16;
 
-function GraphSvg({ tasks }) {
+function GraphSvg({ tasks, dark }) {
   const { pred } = useMemo(() => getPredecessors(tasks), [tasks]);
   const layersMap = useMemo(() => getLayers(tasks, pred), [tasks, pred]);
   const { pathIds, pathEdges } = useMemo(() => getCriticalPath(tasks, pred), [tasks, pred]);
@@ -83,7 +83,7 @@ function GraphSvg({ tasks }) {
           refY="4"
           orient="auto"
         >
-          <path d="M0,0 L8,4 L0,8 Z" fill="#64748b" />
+          <path d="M0,0 L8,4 L0,8 Z" fill={dark ? '#94a3b8' : '#64748b'} />
         </marker>
         <marker
           id="arrow-critical-graph"
@@ -103,7 +103,7 @@ function GraphSvg({ tasks }) {
             key={`${e.from}-${e.to}-${i}`}
             d={`M ${e.x1} ${e.y1} C ${midX} ${e.y1}, ${midX} ${e.y2}, ${e.x2} ${e.y2}`}
             fill="none"
-            stroke={e.critical ? '#dc2626' : '#64748b'}
+            stroke={e.critical ? '#dc2626' : (dark ? '#64748b' : '#64748b')}
             strokeWidth={e.critical ? 2.5 : 1.5}
             markerEnd={`url(#${e.critical ? 'arrow-critical-graph' : 'arrow-graph'})`}
             opacity={e.critical ? 1 : 0.8}
@@ -125,8 +125,8 @@ function GraphSvg({ tasks }) {
               width={pos.w}
               height={pos.h}
               rx={8}
-              fill={critical ? '#fef2f2' : '#e2e8f0'}
-              stroke={critical ? '#dc2626' : '#94a3b8'}
+              fill={critical ? (dark ? '#7f1d1d' : '#fef2f2') : (dark ? '#334155' : '#e2e8f0')}
+              stroke={critical ? '#dc2626' : (dark ? '#64748b' : '#94a3b8')}
               strokeWidth={critical ? 2 : 1}
             />
             <text
@@ -134,7 +134,7 @@ function GraphSvg({ tasks }) {
               y={pos.y + pos.h / 2}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill="#1e293b"
+              fill={dark ? '#e2e8f0' : '#1e293b'}
               style={{ fontSize: 11, fontFamily: 'inherit', fontWeight: 500 }}
             >
               {(t.title || 'Untitled').slice(0, 20)}
@@ -152,6 +152,7 @@ function GraphSvg({ tasks }) {
 
 export default function DependencyGraph() {
   const { tasks, loading } = useTasks();
+  const { dark } = useTheme();
 
   const { pathIds } = useMemo(() => {
     if (tasks.length === 0) return { pathIds: new Set() };
@@ -161,9 +162,7 @@ export default function DependencyGraph() {
   }, [tasks]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Sidebar />
-      <main className="ml-56 flex-1 p-6 flex flex-col min-w-0">
+    <div className="p-4 pt-16 md:pt-6 md:p-6 flex flex-col min-w-0">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -193,7 +192,7 @@ export default function DependencyGraph() {
             </div>
           ) : (
             <div className="p-4" style={{ minWidth: 'min-content', minHeight: 420 }}>
-              <GraphSvg tasks={tasks} />
+              <GraphSvg tasks={tasks} dark={dark} />
             </div>
           )}
         </div>
@@ -202,7 +201,6 @@ export default function DependencyGraph() {
           <Info size={14} />
           <span>Red border and edges = critical path (longest dependency chain). Green dot = task done.</span>
         </div>
-      </main>
     </div>
   );
 }

@@ -11,7 +11,7 @@
     "preview": "cd client && npm run preview",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "clean": "rd /s /q node_modules server\\node_modules client\\node_modules 2>nul || echo Cleaned",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "concurrently \"cd server && npm test\" \"cd client && npm test\""
   },
   "keywords": ["task-management", "dependency", "react", "nodejs", "mongodb"],
   "author": "",

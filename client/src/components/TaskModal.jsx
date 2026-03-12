@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { X, AlertCircle, GitFork, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, AlertCircle, GitFork, ChevronDown, ChevronUp, Paperclip, Loader2, Trash2, FileText } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
+import api from '../api/axios';
 import { toast } from 'sonner';
 import TaskTemplates from './TaskTemplates';
 
@@ -10,6 +11,7 @@ const defaultForm = {
     status: 'Todo',
     priority: 'Medium',
     dependsOn: [],
+    attachments: [],
     dueDate: '',
 };
 
@@ -19,6 +21,8 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
     const [saving, setSaving] = useState(false);
     const [depsOpen, setDepsOpen] = useState(false);
     const [templatesOpen, setTemplatesOpen] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
 
     const handleSelectTemplate = (template) => {
         setForm(prev => ({
@@ -41,6 +45,7 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
                 status: editTask.status === 'Blocked' ? 'Todo' : (editTask.status || 'Todo'),
                 priority: editTask.priority || 'Medium',
                 dependsOn: editTask.dependsOn?.map((d) => d._id || d) || [],
+                attachments: editTask.attachments || [],
                 dueDate: editTask.dueDate ? editTask.dueDate.split('T')[0] : '',
             });
             setDepsOpen((editTask.dependsOn?.length || 0) > 0);
@@ -63,6 +68,51 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
                 ? f.dependsOn.filter((d) => d !== id)
                 : [...f.dependsOn, id],
         }));
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Basic validation (e.g. max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File must be less than 5MB');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('attachment', file);
+
+        setUploading(true);
+        try {
+            const res = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setForm(prev => ({
+                ...prev,
+                attachments: [...prev.attachments, res.data]
+            }));
+            toast.success('File attached');
+        } catch (error) {
+            toast.error('File upload failed');
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const removeAttachment = async (publicId, index) => {
+        // Optimistic UI update
+        const newAttachments = [...form.attachments];
+        newAttachments.splice(index, 1);
+        setForm(prev => ({ ...prev, attachments: newAttachments }));
+
+        try {
+            await api.delete(`/upload/${publicId}`);
+        } catch (error) {
+            toast.error('Failed to delete file from server');
+            // Revert on failure could be implemented here
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -98,7 +148,7 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col animate-modalIn">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
                     <h2 className="font-semibold text-slate-800 dark:text-white text-base">
@@ -196,6 +246,52 @@ export default function TaskModal({ isOpen, onClose, editTask }) {
                             onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
                             className={inputCls}
                         />
+                    </div>
+
+                    {/* Attachments */}
+                    <div>
+                        <label className={labelCls}>Attachments</label>
+                        <div className="flex flex-col gap-3">
+                            {form.attachments.length > 0 && (
+                                <ul className="space-y-2">
+                                    {form.attachments.map((att, i) => (
+                                        <li key={att.publicId} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <FileText size={16} className="text-indigo-400 shrink-0" />
+                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline truncate">
+                                                    {att.originalName || 'Attachment'}
+                                                </a>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeAttachment(att.publicId, i)}
+                                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors shrink-0"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileUpload}
+                                    className="hidden"
+                                    id="file-upload"
+                                    disabled={uploading}
+                                />
+                                <label
+                                    htmlFor="file-upload"
+                                    className={`flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-indigo-400 dark:hover:border-indigo-600'}`}
+                                >
+                                    {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                                    {uploading ? 'Uploading...' : 'Attach File'}
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Depends On — collapsible scrollable list */}
