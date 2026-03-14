@@ -17,6 +17,7 @@ export default function Dashboard() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('All Status');
     const [priorityFilter, setPriorityFilter] = useState('All Priority');
+    const [tagFilter, setTagFilter] = useState('All Tags');
     const [selectedTasks, setSelectedTasks] = useState(new Set());
     const [bulkMode, setBulkMode] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -51,17 +52,26 @@ export default function Dashboard() {
             const matchSearch =
                 !search ||
                 t.title.toLowerCase().includes(search.toLowerCase()) ||
-                t.description?.toLowerCase().includes(search.toLowerCase());
+                t.description?.toLowerCase().includes(search.toLowerCase()) ||
+                t.tags?.some(tag => tag.toLowerCase().includes(search.toLowerCase()));
             const matchStatus = statusFilter === 'All Status' || t.effectiveStatus === statusFilter;
             const matchPriority = priorityFilter === 'All Priority' || t.priority === priorityFilter;
-            return matchSearch && matchStatus && matchPriority;
+            const matchTag = tagFilter === 'All Tags' || t.tags?.includes(tagFilter);
+            return matchSearch && matchStatus && matchPriority && matchTag;
         });
-    }, [tasks, search, statusFilter, priorityFilter]);
+    }, [tasks, search, statusFilter, priorityFilter, tagFilter]);
 
     // Reset page when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [search, statusFilter, priorityFilter]);
+    }, [search, statusFilter, priorityFilter, tagFilter]);
+
+    // Extract unique tags for filtering
+    const allTags = useMemo(() => {
+        const set = new Set();
+        tasks.forEach(t => t.tags?.forEach(tag => set.add(tag)));
+        return ['All Tags', ...Array.from(set).sort()];
+    }, [tasks]);
 
     // Pagination from server
     const totalPages = pagination?.totalPages || 0;
@@ -231,6 +241,8 @@ export default function Dashboard() {
                     search={search} setSearch={setSearch}
                     statusFilter={statusFilter} setStatusFilter={setStatusFilter}
                     priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
+                    tagFilter={tagFilter} setTagFilter={setTagFilter}
+                    availableTags={allTags}
                 />
 
                 {/* Task Grid */}

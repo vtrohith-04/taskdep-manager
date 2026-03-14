@@ -13,6 +13,8 @@ const defaultForm = {
     dependsOn: [],
     attachments: [],
     dueDate: '',
+    subtasks: [],
+    tags: [],
 };
 
 export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
@@ -22,6 +24,8 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
     const [depsOpen, setDepsOpen] = useState(false);
     const [templatesOpen, setTemplatesOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [newSubtask, setNewSubtask] = useState('');
+    const [tagInput, setTagInput] = useState('');
     const fileInputRef = useRef(null);
 
     const handleSelectTemplate = (template) => {
@@ -47,6 +51,8 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
                 dependsOn: editTask.dependsOn?.map((d) => d._id || d) || [],
                 attachments: editTask.attachments || [],
                 dueDate: editTask.dueDate ? editTask.dueDate.split('T')[0] : '',
+                subtasks: editTask.subtasks || [],
+                tags: editTask.tags || [],
             });
             setDepsOpen((editTask.dependsOn?.length || 0) > 0);
         } else {
@@ -117,6 +123,45 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
             // Revert on failure could be implemented here
         }
     };
+
+    const addSubtask = () => {
+        if (!newSubtask.trim()) return;
+        setForm(f => ({
+            ...f,
+            subtasks: [...f.subtasks, { title: newSubtask, completed: false }]
+        }));
+        setNewSubtask('');
+    };
+
+    const toggleSubtask = (index) => {
+        if (isViewOnly) return;
+        setForm(f => ({
+            ...f,
+            subtasks: f.subtasks.map((s, i) => i === index ? { ...s, completed: !s.completed } : s)
+        }));
+    };
+
+    const removeSubtask = (index) => {
+        if (isViewOnly) return;
+        setForm(f => ({
+            ...f,
+            subtasks: f.subtasks.filter((_, i) => i !== index)
+        }));
+    };
+
+    const addTag = (tag) => {
+        const t = (tag || tagInput).trim();
+        if (!t || form.tags.includes(t)) return;
+        setForm(f => ({ ...f, tags: [...f.tags, t] }));
+        setTagInput('');
+    };
+
+    const removeTag = (tag) => {
+        if (isViewOnly) return;
+        setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }));
+    };
+
+    const COMMON_TAGS = ['Engineering', 'Marketing', 'Testing', 'Design', 'Research', 'Documentation'];
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -272,6 +317,76 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
                         </div>
                     </div>
 
+                    {/* Tags */}
+                    <div>
+                        <label className={labelCls}>Tags & Labels</label>
+                        <div className="space-y-3">
+                            {!isViewOnly && (
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            value={tagInput}
+                                            onChange={(e) => setTagInput(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                                            placeholder="Add custom tag (e.g. Marketing)..."
+                                            className={inputCls}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => addTag()}
+                                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-bold active:scale-95 transition-transform"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Applied Tags */}
+                            <div className="flex flex-wrap gap-2">
+                                {form.tags.length > 0 ? (
+                                    form.tags.map((tag, i) => (
+                                        <span 
+                                            key={i} 
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-100 dark:border-indigo-800/50 group/tag"
+                                        >
+                                            {tag}
+                                            {!isViewOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeTag(tag)}
+                                                    className="p-0.5 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full transition-colors"
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </span>
+                                    ))
+                                ) : isViewOnly && (
+                                    <p className="text-xs text-slate-400 italic px-1">No tags assigned.</p>
+                                )}
+                            </div>
+
+                            {/* Suggestions */}
+                            {!isViewOnly && (
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mr-1 pt-1">Quick Add:</span>
+                                    {COMMON_TAGS.filter(t => !form.tags.includes(t)).map(t => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => addTag(t)}
+                                            className="text-[10px] px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-700 transition-colors font-semibold"
+                                        >
+                                            + {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Due Date */}
                     <div>
                         <label className={labelCls}>Due Date {!isViewOnly && <span className="text-slate-400 font-normal">(optional)</span>}</label>
@@ -290,12 +405,68 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
                         )}
                     </div>
 
+                    {/* Sub-tasks */}
+                    <div>
+                        <label className={labelCls}>Sub-tasks & Checklist</label>
+                        <div className="space-y-3">
+                            {!isViewOnly && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={newSubtask}
+                                        onChange={(e) => setNewSubtask(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSubtask())}
+                                        placeholder="Add a step..."
+                                        className={inputCls}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addSubtask}
+                                        className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200 dark:border-indigo-800 text-sm font-bold active:scale-95 transition-transform"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {form.subtasks.length > 0 ? (
+                                <ul className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                                    {form.subtasks.map((s, i) => (
+                                        <li key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 group/sub">
+                                            <input
+                                                type="checkbox"
+                                                checked={s.completed}
+                                                readOnly={isViewOnly}
+                                                onChange={() => toggleSubtask(i)}
+                                                className={`accent-indigo-500 w-4 h-4 shrink-0 ${isViewOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                            />
+                                            <span className={`text-sm flex-1 font-medium transition-all ${s.completed ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                {s.title}
+                                            </span>
+                                            {!isViewOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSubtask(i)}
+                                                    className="opacity-0 group-hover/sub:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : isViewOnly && (
+                                <p className="text-xs text-slate-400 italic px-1">No sub-tasks defined.</p>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Attachments */}
                     <div>
                         <label className={labelCls}>Attachments</label>
                         <div className="flex flex-col gap-3">
                             {form.attachments.length > 0 && (
-                                <ul className="space-y-2">
+                                <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                                     {form.attachments.map((att, i) => {
                                          const isImage = att.url?.match(/\.(jpg|jpeg|png|webp|gif)$|cloudinary/);
                                          return (
@@ -376,7 +547,7 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
                                 <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 px-3 py-2">
                                     {!isViewOnly && <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">Auto-blocks this task until all are Done</p>}
                                     {isViewOnly ? (
-                                        <ul className="space-y-1.5 py-1">
+                                        <ul className="max-h-48 overflow-y-auto space-y-1.5 py-1 pr-1 custom-scrollbar">
                                             {selectedDeps.map(t => (
                                                  <li key={t._id} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                                      <span className="text-xs text-slate-700 dark:text-slate-300 flex-1 truncate font-medium">{t.title}</span>

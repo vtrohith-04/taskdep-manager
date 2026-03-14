@@ -1,3 +1,5 @@
+import dagre from 'dagre';
+
 /**
  * Build adjacency: taskId -> list of task IDs it depends on (predecessors).
  * Edge (pred, task) means "task depends on pred".
@@ -14,39 +16,6 @@ export function getPredecessors(tasks) {
     pred.set(id, deps.map(String));
   });
   return { byId, pred };
-}
-
-/**
- * Topological layers: layer 0 = no deps in set, layer 1 = only depend on layer 0, etc.
- * Only assign when all predecessors have a layer (multi-pass).
- */
-export function getLayers(tasks, pred) {
-  const ids = new Set(tasks.map((t) => String(t._id)));
-  const layer = new Map();
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const id of ids) {
-      if (layer.has(id)) continue;
-      const deps = pred.get(id) || [];
-      const depsInSet = deps.filter((d) => ids.has(d));
-      if (depsInSet.length === 0) {
-        layer.set(id, 0);
-        changed = true;
-      } else {
-        const depLayers = depsInSet.map((d) => layer.get(d)).filter((l) => l !== undefined);
-        if (depLayers.length === depsInSet.length) {
-          const maxDepLayer = Math.max(...depLayers);
-          layer.set(id, maxDepLayer + 1);
-          changed = true;
-        }
-      }
-    }
-  }
-  ids.forEach((id) => {
-    if (!layer.has(id)) layer.set(id, 0);
-  });
-  return layer;
 }
 
 /**
@@ -122,4 +91,93 @@ export function getCriticalPath(tasks, pred) {
     }
   }
   return { pathIds, pathEdges };
+}
+
+/**
+ * Convert tasks to React Flow nodes and edges with Dagre layout
+ */
+export function getFlowElements(tasks) {
+  const { pred } = getPredecessors(tasks);
+  const { pathIds, pathEdges } = getCriticalPath(tasks, pred);
+  
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'LR', nodesep: 60, ranksep: 100 });
+  g.setDefaultEdgeLabel(() => ({}));
+
+  const initialNodes = tasks.map((t) => {
+    const id = String(t._id);
+    g.setNode(id, { width: 220, height: 100 });
+    return {
+      id,
+      type: 'taskNode',
+      data: { task: t, critical: pathIds.has(id) },
+      position: { x: 0, y: 0 },
+    };
+  });
+
+  const initialEdges = [];
+  tasks.forEach((t) => {
+    const toId = String(t._id);
+    const deps = pred.get(toId) || [];
+    deps.forEach((fromId) => {
+      const isCritical = pathEdges.has(`${fromId}->${toId}`);
+      g.setEdge(fromId, toId);
+      initialEdges.push({
+        id: `e-${fromId}-${toId}`,
+        source: fromId,
+        target: toId,
+        animated: isCritical,
+        style: { 
+            stroke: isCritical ? '#ef4444' : '#94a3b8', 
+            strokeWidth: isCritical ? 3 : 2,
+            opacity: isCritical ? 1 : 0.6
+        },
+        type: 'smoothstep',
+      });
+    });
+  });
+
+  dagre.layout(g);
+
+  const nodes = initialNodes.map((n) => {
+    const nodeWithPos = g.node(n.id);
+    return {
+      ...n,
+      position: {
+        x: nodeWithPos.x - nodeWithPos.width / 2,
+        y: nodeWithPos.y - nodeWithPos.height / 2,
+      },
+    };
+  });
+
+  return { nodes, edges: initialEdges };
+}
+
+export function getLayers(tasks, pred) {
+  const ids = new Set(tasks.map((t) => String(t._id)));
+  const layer = new Map();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const id of ids) {
+      if (layer.has(id)) continue;
+      const deps = pred.get(id) || [];
+      const depsInSet = deps.filter((d) => ids.has(d));
+      if (depsInSet.length === 0) {
+        layer.set(id, 0);
+        changed = true;
+      } else {
+        const depLayers = depsInSet.map((d) => layer.get(d)).filter((l) => l !== undefined);
+        if (depLayers.length === depsInSet.length) {
+          const maxDepLayer = Math.max(...depLayers);
+          layer.set(id, maxDepLayer + 1);
+          changed = true;
+        }
+      }
+    }
+  }
+  ids.forEach((id) => {
+    if (!layer.has(id)) layer.set(id, 0);
+  });
+  return layer;
 }

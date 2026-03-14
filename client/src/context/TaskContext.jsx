@@ -57,6 +57,7 @@ function taskReducer(state, action) {
                 ...state, 
                 tasks: action.payload.tasks, 
                 pagination: action.payload.pagination,
+                stats: action.payload.stats || state.stats,
                 loading: false 
             };
         case 'ADD_TASK':
@@ -89,6 +90,13 @@ export function TaskProvider({ children }) {
             totalPages: 0,
             currentPage: 1,
             limit: 12
+        },
+        stats: {
+            total: 0,
+            todo: 0,
+            inProgress: 0,
+            done: 0,
+            blocked: 0
         },
         loading: true,
         error: null,

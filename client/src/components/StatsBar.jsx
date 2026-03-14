@@ -3,24 +3,20 @@ import { useTasks } from '../context/TaskContext';
 import { ListTodo, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function StatsBar() {
-    const { tasks } = useTasks();
+    const { stats } = useTasks();
 
-    const stats = useMemo(() => {
-        const total = tasks.length;
-        const inProgress = tasks.filter((t) => t.effectiveStatus === 'In Progress').length;
-        const completed = tasks.filter((t) => t.effectiveStatus === 'Done').length;
-        const blocked = tasks.filter((t) => t.effectiveStatus === 'Blocked').length;
+    const statsData = useMemo(() => {
         return [
-            { label: 'Total', value: total, icon: ListTodo, color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-800' },
-            { label: 'In Progress', value: inProgress, icon: Loader2, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-            { label: 'Completed', value: completed, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-            { label: 'Blocked', value: blocked, icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
+            { label: 'Total', value: stats.total, icon: ListTodo, color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-800' },
+            { label: 'In Progress', value: stats.inProgress, icon: Loader2, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+            { label: 'Completed', value: stats.done, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+            { label: 'Blocked', value: stats.blocked, icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
         ];
-    }, [tasks]);
+    }, [stats]);
 
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5 mb-8">
-            {stats.map((s) => (
+            {statsData.map((s) => (
                 <div
                     key={s.label}
                     className="bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700/70 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group"

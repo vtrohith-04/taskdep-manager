@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, History, Sun, Moon, LogOut, ShieldCheck, User, BarChart3, GitBranch, LayoutGrid, Menu, X } from 'lucide-react';
+import { LayoutDashboard, History, Sun, Moon, LogOut, ShieldCheck, User, PieChart, Network, Kanban, CalendarRange, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -69,16 +69,20 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                     {!collapsed && <span>Dashboard</span>}
                 </NavLink>
                 <NavLink to="/kanban" className={linkClass} title="Kanban Board">
-                    <LayoutGrid size={18} className="shrink-0" />
+                    <Kanban size={18} className="shrink-0" />
                     {!collapsed && <span>Kanban Board</span>}
                 </NavLink>
                 <NavLink to="/gantt" className={linkClass} title="Gantt Chart">
-                    <BarChart3 size={18} className="shrink-0" />
+                    <CalendarRange size={18} className="shrink-0" />
                     {!collapsed && <span>Gantt Chart</span>}
                 </NavLink>
                 <NavLink to="/graph" className={linkClass} title="Dependency Graph">
-                    <GitBranch size={18} className="shrink-0" />
+                    <Network size={18} className="shrink-0" />
                     {!collapsed && <span>Dependency Graph</span>}
+                </NavLink>
+                <NavLink to="/analytics" className={linkClass} title="Project Analytics">
+                    <PieChart size={18} className="shrink-0" />
+                    {!collapsed && <span>Analytics</span>}
                 </NavLink>
                 <NavLink to="/history" className={linkClass} title="Task History">
                     <History size={18} className="shrink-0" />

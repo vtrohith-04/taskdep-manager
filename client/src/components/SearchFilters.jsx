@@ -3,7 +3,13 @@ import { Search } from 'lucide-react';
 const statuses = ['All Status', 'Todo', 'In Progress', 'Done', 'Blocked'];
 const priorities = ['All Priority', 'High', 'Medium', 'Low'];
 
-export default function SearchFilters({ search, setSearch, statusFilter, setStatusFilter, priorityFilter, setPriorityFilter }) {
+export default function SearchFilters({ 
+    search, setSearch, 
+    statusFilter, setStatusFilter, 
+    priorityFilter, setPriorityFilter,
+    tagFilter, setTagFilter,
+    availableTags = []
+}) {
     return (
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-8">
             {/* Search */}
@@ -35,6 +41,17 @@ export default function SearchFilters({ search, setSearch, statusFilter, setStat
             >
                 {priorities.map((p) => <option key={p}>{p}</option>)}
             </select>
+
+            {/* Tag filter */}
+            {availableTags.length > 1 && (
+                <select
+                    value={tagFilter}
+                    onChange={(e) => setTagFilter(e.target.value)}
+                    className="py-3 px-4 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+                >
+                    {availableTags.map((tag) => <option key={tag}>{tag}</option>)}
+                </select>
+            )}
         </div>
     );
 }

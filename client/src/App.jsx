@@ -11,6 +11,7 @@ import Sidebar from './components/Sidebar';
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const History = lazy(() => import('./pages/History'));
+const Analytics = lazy(() => import('./pages/Analytics'));
 const GanttView = lazy(() => import('./pages/GanttView'));
 const DependencyGraph = lazy(() => import('./pages/DependencyGraph'));
 const KanbanView = lazy(() => import('./pages/KanbanView'));
@@ -51,6 +52,7 @@ function AppRoutes() {
           <Route path="/gantt" element={<GanttView />} />
           <Route path="/kanban" element={<KanbanView />} />
           <Route path="/graph" element={<DependencyGraph />} />
+          <Route path="/analytics" element={<Analytics />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

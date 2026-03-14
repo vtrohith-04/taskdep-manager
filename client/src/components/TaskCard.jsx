@@ -68,20 +68,36 @@ export default function TaskCard({ task, onView, onEdit, onDelete, onRevert, onC
                     </p>
                 )}
 
-                {/* Badges */}
-                <div className="flex items-center gap-2 flex-wrap pt-1">
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColors[displayStatus] || statusColors.Todo}`}>
-                        {displayStatus}
-                    </span>
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${priorityColors[task.effectivePriority || task.priority] || priorityColors.Medium}`}>
-                        {task.effectivePriority || task.priority}
-                    </span>
-                    
-                    {/* Subtle Attachment Indicator */}
-                    {task.attachments?.length > 0 && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                            <Paperclip size={10} className="text-indigo-500" />
-                            <span>{task.attachments.length} file{task.attachments.length !== 1 ? 's' : ''}</span>
+                {/* Badges & Tags */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-tight ${statusColors[displayStatus] || statusColors.Todo}`}>
+                            {displayStatus}
+                        </span>
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-tight ${priorityColors[task.effectivePriority || task.priority] || priorityColors.Medium}`}>
+                            {task.effectivePriority || task.priority}
+                        </span>
+                        
+                        {/* Subtle Attachment Indicator */}
+                        {task.attachments?.length > 0 && (
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                <Paperclip size={10} className="text-indigo-500" />
+                                <span>{task.attachments.length}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Tags */}
+                    {task.tags && task.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {task.tags.map((tag, i) => (
+                                <span 
+                                    key={i} 
+                                    className="text-[9px] px-2 py-0.5 rounded-md bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 font-bold uppercase tracking-wider"
+                                >
+                                    {tag}
+                                </span>
+                            ))}
                         </div>
                     )}
                 </div>
