@@ -10,9 +10,10 @@ import api from '../api/axios';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
-    const { tasks, loading, deleteTask, updateTask } = useTasks();
+    const { tasks, pagination, loading, deleteTask, updateTask, fetchTasks } = useTasks();
     const [modalOpen, setModalOpen] = useState(false);
     const [editTask, setEditTask] = useState(null);
+    const [isViewOnly, setIsViewOnly] = useState(false);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('All Status');
     const [priorityFilter, setPriorityFilter] = useState('All Priority');
@@ -20,6 +21,11 @@ export default function Dashboard() {
     const [bulkMode, setBulkMode] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 12;
+
+    // Fetch tasks when page changes
+    useEffect(() => {
+        fetchTasks(currentPage, ITEMS_PER_PAGE);
+    }, [currentPage, fetchTasks]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -57,16 +63,14 @@ export default function Dashboard() {
         setCurrentPage(1);
     }, [search, statusFilter, priorityFilter]);
 
-    // Pagination
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-    const paginatedTasks = filtered.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    // Pagination from server
+    const totalPages = pagination?.totalPages || 0;
+    const paginatedTasks = filtered;
 
-    const openAdd = () => { setEditTask(null); setModalOpen(true); };
-    const openEdit = (task) => { setEditTask(task); setModalOpen(true); };
-    const closeModal = () => { setModalOpen(false); setEditTask(null); };
+    const openAdd = () => { setEditTask(null); setIsViewOnly(false); setModalOpen(true); };
+    const openEdit = (task) => { setEditTask(task); setIsViewOnly(false); setModalOpen(true); };
+    const openView = (task) => { setEditTask(task); setIsViewOnly(true); setModalOpen(true); };
+    const closeModal = () => { setModalOpen(false); setEditTask(null); setIsViewOnly(false); };
 
     const handleDelete = async (id) => {
         if (window.confirm('Delete this task?')) await deleteTask(id);
@@ -246,6 +250,7 @@ export default function Dashboard() {
                             <div key={task._id} className="animate-slideUp" style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}>
                                 <TaskCard
                                     task={task}
+                                    onView={openView}
                                     onEdit={openEdit}
                                     onDelete={handleDelete}
                                     onRevert={handleRevert}
@@ -294,7 +299,7 @@ export default function Dashboard() {
                         </span>
                     </div>
                 )}
-            <TaskModal isOpen={modalOpen} onClose={closeModal} editTask={editTask} />
+            <TaskModal isOpen={modalOpen} onClose={closeModal} editTask={editTask} isViewOnly={isViewOnly} />
         </div>
     );
 }

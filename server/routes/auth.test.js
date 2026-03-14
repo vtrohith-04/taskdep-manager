@@ -21,8 +21,8 @@ describe('Auth API Routes', () => {
 
             expect(res.statusCode).toBe(201);
             expect(res.body).toHaveProperty('token');
-            expect(res.body.user).toHaveProperty('name', testUser.name);
-            expect(res.body.user).toHaveProperty('email', testUser.email);
+            expect(res.body).toHaveProperty('name', testUser.name);
+            expect(res.body).toHaveProperty('email', testUser.email);
         });
 
         it('should return error if email is already taken', async () => {
@@ -33,7 +33,7 @@ describe('Auth API Routes', () => {
                 .send(testUser);
 
             expect(res.statusCode).toBe(400);
-            expect(res.body.message).toBe('User already exists');
+            expect(res.body.message).toBe('Email already registered');
         });
 
         it('should return 400 on validation failure', async () => {
@@ -62,7 +62,7 @@ describe('Auth API Routes', () => {
 
             expect(res.statusCode).toBe(200);
             expect(res.body).toHaveProperty('token');
-            expect(res.body.user.email).toBe(testUser.email);
+            expect(res.body.email).toBe(testUser.email);
         });
 
         it('should reject invalid credentials', async () => {
@@ -76,7 +76,7 @@ describe('Auth API Routes', () => {
                 });
 
             expect(res.statusCode).toBe(401);
-            expect(res.body.message).toBe('Invalid credentials');
+            expect(res.body.message).toBe('Invalid email or password');
         });
     });
 

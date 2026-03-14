@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Calendar, AlertTriangle, GripVertical } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, GripVertical, Paperclip } from 'lucide-react';
 import {
     DndContext,
     DragOverlay,
@@ -13,6 +13,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import TaskModal from '../components/TaskModal';
 import { useTasks } from '../context/TaskContext';
 import { toast } from 'sonner';
+import KanbanSkeleton from '../components/KanbanSkeleton';
 
 const statusConfig = {
     Todo: {
@@ -55,7 +56,7 @@ const priorityColors = {
     Low: 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800',
 };
 
-function DraggableTaskCard({ task, onEdit, onDelete }) {
+function DraggableTaskCard({ task, onView, onEdit, onDelete }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task._id,
         data: { task },
@@ -74,7 +75,8 @@ function DraggableTaskCard({ task, onEdit, onDelete }) {
             style={style}
             {...attributes} 
             {...listeners}
-            className={`bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 shadow-xl scale-105' : ''}`}
+            onClick={() => onView && onView(task)}
+            className={`bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group cursor-pointer ${isDragging ? 'opacity-50 shadow-xl scale-105' : ''}`}
         >
             {/* Drag handle + Title */}
             <div className="flex items-start gap-1.5 mb-1.5">
@@ -91,11 +93,17 @@ function DraggableTaskCard({ task, onEdit, onDelete }) {
                 </p>
             )}
 
-            {/* Priority badge */}
-            <div className="flex items-center gap-2 mb-2 ml-5">
+            {/* Priority and attachment indicator */}
+            <div className="flex items-center justify-between mb-2 ml-5">
                 <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priorityColors[task.effectivePriority || task.priority]}`}>
                     {task.effectivePriority || task.priority}
                 </span>
+                {task.attachments?.length > 0 && (
+                     <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                        <Paperclip size={10} className="text-indigo-400" />
+                        <span>{task.attachments.length}</span>
+                    </div>
+                )}
             </div>
 
             {/* Due date and actions */}
@@ -103,7 +111,6 @@ function DraggableTaskCard({ task, onEdit, onDelete }) {
                 <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>
                     <Calendar size={10} />
                     <span>{dueDate || 'No date'}</span>
-                    <span className="ml-0.5 font-mono text-slate-400 dark:text-slate-500">#{String(task._id).slice(-6)}</span>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -126,7 +133,7 @@ function DraggableTaskCard({ task, onEdit, onDelete }) {
     );
 }
 
-function DroppableColumn({ status, tasks, onEdit, onDelete, config }) {
+function DroppableColumn({ status, tasks, onView, onEdit, onDelete, config }) {
     const { setNodeRef, isOver } = useDroppable({
         id: status,
     });
@@ -156,6 +163,7 @@ function DroppableColumn({ status, tasks, onEdit, onDelete, config }) {
                         <DraggableTaskCard
                             key={task._id}
                             task={task}
+                            onView={onView}
                             onEdit={onEdit}
                             onDelete={onDelete}
                         />
@@ -173,6 +181,7 @@ export default function KanbanView() {
     const { tasks, loading, deleteTask, updateTask } = useTasks();
     const [modalOpen, setModalOpen] = useState(false);
     const [editTask, setEditTask] = useState(null);
+    const [isViewOnly, setIsViewOnly] = useState(false);
     const [activeTask, setActiveTask] = useState(null);
 
     const sensors = useSensors(
@@ -199,9 +208,10 @@ export default function KanbanView() {
         return grouped;
     }, [tasks]);
 
-    const openAdd = () => { setEditTask(null); setModalOpen(true); };
-    const openEdit = (task) => { setEditTask(task); setModalOpen(true); };
-    const closeModal = () => { setModalOpen(false); setEditTask(null); };
+    const openAdd = () => { setEditTask(null); setIsViewOnly(false); setModalOpen(true); };
+    const openEdit = (task) => { setEditTask(task); setIsViewOnly(false); setModalOpen(true); };
+    const openView = (task) => { setEditTask(task); setIsViewOnly(true); setModalOpen(true); };
+    const closeModal = () => { setModalOpen(false); setEditTask(null); setIsViewOnly(false); };
 
     const handleDelete = async (id) => {
         if (window.confirm('Delete this task?')) {
@@ -270,10 +280,7 @@ export default function KanbanView() {
 
                 {/* Kanban Board */}
                 {loading ? (
-                    <div className="flex items-center justify-center h-96 text-slate-400">
-                        <div className="animate-spin mr-3">⚙️</div>
-                        Loading tasks...
-                    </div>
+                    <KanbanSkeleton />
                 ) : (
                     <DndContext
                         sensors={sensors}
@@ -287,6 +294,7 @@ export default function KanbanView() {
                                     key={status}
                                     status={status}
                                     tasks={groupedTasks[status] || []}
+                                    onView={openView}
                                     onEdit={openEdit}
                                     onDelete={handleDelete}
                                     config={config}
@@ -324,7 +332,7 @@ export default function KanbanView() {
                         ))}
                     </div>
                 )}
-            <TaskModal isOpen={modalOpen} onClose={closeModal} editTask={editTask} />
+            <TaskModal isOpen={modalOpen} onClose={closeModal} editTask={editTask} isViewOnly={isViewOnly} />
         </div>
     );
 }

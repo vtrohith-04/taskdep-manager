@@ -53,7 +53,12 @@ export function getBlockingDeps(task) {
 function taskReducer(state, action) {
     switch (action.type) {
         case 'SET_TASKS':
-            return { ...state, tasks: action.payload, loading: false };
+            return { 
+                ...state, 
+                tasks: action.payload.tasks, 
+                pagination: action.payload.pagination,
+                loading: false 
+            };
         case 'ADD_TASK':
             return { ...state, tasks: [action.payload, ...state.tasks] };
         case 'UPDATE_TASK':
@@ -79,15 +84,21 @@ export function TaskProvider({ children }) {
     const [state, dispatch] = useReducer(taskReducer, {
         tasks: [],
         history: [],
+        pagination: {
+            totalTasks: 0,
+            totalPages: 0,
+            currentPage: 1,
+            limit: 12
+        },
         loading: true,
         error: null,
     });
 
-    const fetchTasks = useCallback(async () => {
+    const fetchTasks = useCallback(async (page = 1, limit = 12) => {
         if (!user) return;
         dispatch({ type: 'SET_LOADING', payload: true });
         try {
-            const { data } = await api.get('/tasks');
+            const { data } = await api.get(`/tasks?page=${page}&limit=${limit}`);
             dispatch({ type: 'SET_TASKS', payload: data });
         } catch (err) {
             dispatch({ type: 'SET_ERROR', payload: err.response?.data?.message || 'Failed to fetch tasks' });
@@ -110,27 +121,29 @@ export function TaskProvider({ children }) {
 
     const addTask = async (taskData) => {
         const { data } = await api.post('/tasks', taskData);
-        // Re-fetch all tasks so effectiveStatus of dependents is recomputed
-        await fetchTasks();
+        // After add, go to page 1 to see the new task
+        await fetchTasks(1, state.pagination.limit);
         return data;
     };
 
     const updateTask = async (id, taskData) => {
         const { data } = await api.put(`/tasks/${id}`, taskData);
-        // Re-fetch so all dependent tasks' effectiveStatus refreshes
-        await fetchTasks();
+        // Re-fetch current page so all dependent tasks' effectiveStatus refreshes
+        await fetchTasks(state.pagination.currentPage, state.pagination.limit);
         return data;
     };
 
     const deleteTask = async (id) => {
         await api.delete(`/tasks/${id}`);
-        dispatch({ type: 'DELETE_TASK', payload: id });
+        // Re-fetch current page to pull in next task and update counts
+        await fetchTasks(state.pagination.currentPage, state.pagination.limit);
     };
 
     const restoreTask = async (id) => {
         const { data } = await api.put(`/tasks/${id}/restore`);
         dispatch({ type: 'SET_HISTORY', payload: state.history.filter((t) => t._id !== id) });
-        dispatch({ type: 'ADD_TASK', payload: data });
+        // After restore, refresh current page
+        await fetchTasks(state.pagination.currentPage, state.pagination.limit);
         return data;
     };
 

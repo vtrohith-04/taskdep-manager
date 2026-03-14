@@ -3,6 +3,7 @@ import { GitBranch, Info } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import { useTheme } from '../context/ThemeContext';
 import { getPredecessors, getLayers, getCriticalPath } from '../utils/graphUtils';
+import GraphSkeleton from '../components/GraphSkeleton';
 
 const NODE_WIDTH = 160;
 const NODE_HEIGHT = 44;
@@ -184,7 +185,7 @@ export default function DependencyGraph() {
 
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-auto min-h-[420px] h-[500px]">
           {loading ? (
-            <div className="flex items-center justify-center h-full min-h-[420px] text-slate-400">Loading...</div>
+            <GraphSkeleton />
           ) : tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[420px] text-slate-400 gap-2">
               <GitBranch size={40} className="opacity-40" />

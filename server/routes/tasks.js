@@ -3,6 +3,7 @@ const Task = require('../models/Task');
 const protect = require('../middleware/protect');
 const { hasCircularDependency } = require('../utils/graph');
 const { z } = require('zod');
+const { sendTaskEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -41,10 +42,29 @@ router.use(protect);
 // @route GET /api/tasks — Get all active tasks for the user
 router.get('/', async (req, res) => {
     try {
-        const tasks = await Task.find({ owner: req.user._id, deleted: false })
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12; // Use dashboard default
+        const skip = (page - 1) * limit;
+
+        const query = { owner: req.user._id, deleted: false };
+
+        const totalTasks = await Task.countDocuments(query);
+        const tasks = await Task.find(query)
             .populate('dependsOn', 'title _id status')
-            .sort({ createdAt: -1 });
-        res.json(tasks);
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        res.json({
+            tasks,
+            pagination: {
+                totalTasks,
+                totalPages: Math.ceil(totalTasks / limit),
+                currentPage: page,
+                limit
+            }
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -58,7 +78,8 @@ router.get('/history', async (req, res) => {
             $or: [{ deleted: true }, { status: 'Done' }],
         })
             .populate('dependsOn', 'title _id status')
-            .sort({ updatedAt: -1 });
+            .sort({ updatedAt: -1 })
+            .lean();
         res.json(tasks);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -116,7 +137,7 @@ router.put('/:id', async (req, res) => {
 
         // Circular dependency check when deps change
         if (dependsOn !== undefined && dependsOn.length > 0) {
-            const allTasks = await Task.find({ owner: req.user._id, deleted: false });
+            const allTasks = await Task.find({ owner: req.user._id, deleted: false }).lean();
             if (hasCircularDependency(allTasks, req.params.id, dependsOn)) {
                 return res.status(400).json({ message: 'Circular Dependency Detected' });
             }
@@ -136,6 +157,12 @@ router.put('/:id', async (req, res) => {
         }
 
         await task.save();
+
+        // Send email notification on completion (Minimal implementation)
+        if (status === 'Done') {
+            await sendTaskEmail(req.user, task, 'completed');
+        }
+
         const populated = await task.populate('dependsOn', 'title _id status');
         res.json(populated);
     } catch (err) {
@@ -182,7 +209,8 @@ router.get('/export', async (req, res) => {
     try {
         const tasks = await Task.find({ owner: req.user._id, deleted: false })
             .populate('dependsOn', 'title')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         // Helper: escape CSV field (double quotes → doubled)
         const esc = (str) => `"${String(str || '').replace(/"/g, '""')}"`;

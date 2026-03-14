@@ -1,12 +1,25 @@
-import { useEffect } from 'react';
-import { RotateCcw, History as HistoryIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { RotateCcw, History as HistoryIcon, X } from 'lucide-react';
 import TaskCard from '../components/TaskCard';
+import TaskModal from '../components/TaskModal';
 import { useTasks } from '../context/TaskContext';
 
 export default function History() {
     const { history, fetchHistory, restoreTask, loading } = useTasks();
+    const [modalOpen, setModalOpen] = useState(false);
+    const [viewTask, setViewTask] = useState(null);
 
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+    const openView = (task) => {
+        setViewTask(task);
+        setModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setModalOpen(false);
+        setViewTask(null);
+    };
 
     return (
         <div className="p-4 pt-16 md:pt-6 md:p-6">
@@ -33,11 +46,13 @@ export default function History() {
                             <TaskCard
                                 key={task._id}
                                 task={task}
+                                onView={openView}
                                 onRevert={!task.deleted ? () => restoreTask(task._id) : undefined}
                             />
                         ))}
                     </div>
                 )}
+            <TaskModal isOpen={modalOpen} onClose={closeModal} editTask={viewTask} isViewOnly={true} />
         </div>
     );
 }

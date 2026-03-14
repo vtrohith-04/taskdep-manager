@@ -35,8 +35,26 @@ describe('Tasks API Routes', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
-            expect(res.body.length).toBe(1); // Only non-deleted
-            expect(res.body[0].title).toBe('T1');
+            expect(res.body.tasks.length).toBe(1); // Only non-deleted
+            expect(res.body.tasks[0].title).toBe('T1');
+            expect(res.body.pagination).toBeDefined();
+            expect(res.body.pagination.totalTasks).toBe(1);
+        });
+
+        it('should support pagination query parameters', async () => {
+            // Create 3 tasks
+            await Task.create({ title: 'T1', owner: user._id });
+            await Task.create({ title: 'T2', owner: user._id });
+            await Task.create({ title: 'T3', owner: user._id });
+
+            const res = await request(app)
+                .get('/api/tasks?page=1&limit=2')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.tasks.length).toBe(2);
+            expect(res.body.pagination.totalPages).toBe(2);
+            expect(res.body.pagination.currentPage).toBe(1);
         });
     });
 
@@ -95,9 +113,23 @@ describe('Tasks API Routes', () => {
             expect(res.statusCode).toBe(400);
             expect(res.body.message).toBe('Circular Dependency Detected');
         });
+
+        it('should handle deep dependency chains', async () => {
+            const t1 = await Task.create({ title: 'T1', owner: user._id });
+            const t2 = await Task.create({ title: 'T2', owner: user._id, dependsOn: [t1._id] });
+            const t3 = await Task.create({ title: 'T3', owner: user._id, dependsOn: [t2._id] });
+
+            const res = await request(app)
+                .get('/api/tasks')
+                .set('Authorization', `Bearer ${token}`);
+
+            const tasks = res.body.tasks;
+            const t3_resp = tasks.find(t => t.title === 'T3');
+            expect(t3_resp.dependsOn[0]._id.toString()).toBe(t2._id.toString());
+        });
     });
 
-    describe('DELETE /api/tasks/:id', () => {
+    describe('DELETE /api/tasks/:id and Dependencies', () => {
         it('should soft delete a task', async () => {
             const task = await Task.create({ title: 'To Delete', owner: user._id });
 
@@ -110,6 +142,23 @@ describe('Tasks API Routes', () => {
             // Verify in DB
             const dbTask = await Task.findById(task._id);
             expect(dbTask.deleted).toBe(true);
+        });
+
+        it('should not show deleted tasks in dependencies for new tasks', async () => {
+             const t1 = await Task.create({ title: 'Deleted', owner: user._id, deleted: true });
+             
+             const res = await request(app)
+                 .post('/api/tasks')
+                 .set('Authorization', `Bearer ${token}`)
+                 .send({
+                     title: 'Should fail',
+                     dependsOn: [t1._id.toString()],
+                     status: 'Todo',
+                     priority: 'Low'
+                 });
+
+             expect(res.statusCode).toBe(400);
+             expect(res.body.message).toBe('One or more dependency tasks not found');
         });
     });
 });

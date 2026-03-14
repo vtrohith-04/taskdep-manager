@@ -26,7 +26,7 @@ function isDueOverdue(dueDate) {
     return new Date(dueDate) < new Date();
 }
 
-export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete, bulkMode, isSelected, onToggleSelect }) {
+export default function TaskCard({ task, onView, onEdit, onDelete, onRevert, onComplete, bulkMode, isSelected, onToggleSelect }) {
     const [showDetails, setShowDetails] = useState(false);
     // Use effectiveStatus (auto-computed) for display; fall back to stored status
     const displayStatus = task.effectiveStatus || task.status;
@@ -42,7 +42,7 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete,
                     ? 'border-red-200 dark:border-red-900/50 bg-red-50/40 dark:bg-red-950/20 shadow-sm shadow-red-100 dark:shadow-red-950/50'
                     : 'border-slate-200/70 dark:border-slate-700 shadow-sm hover:shadow-lg'
                     } ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 shadow-lg' : ''}`}
-                onClick={() => !bulkMode && onEdit && onEdit(task)}
+                onClick={() => !bulkMode && onView && onView(task)}
             >
                 {/* Bulk selection checkbox */}
                 {bulkMode && (
@@ -63,7 +63,7 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete,
 
                 {/* Description */}
                 {task.description && (
-                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
                         {task.description}
                     </p>
                 )}
@@ -76,10 +76,12 @@ export default function TaskCard({ task, onEdit, onDelete, onRevert, onComplete,
                     <span className={`text-xs px-3 py-1 rounded-full font-medium ${priorityColors[task.effectivePriority || task.priority] || priorityColors.Medium}`}>
                         {task.effectivePriority || task.priority}
                     </span>
+                    
+                    {/* Subtle Attachment Indicator */}
                     {task.attachments?.length > 0 && (
-                        <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                            <Paperclip size={12} />
-                            {task.attachments.length}
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                            <Paperclip size={10} className="text-indigo-500" />
+                            <span>{task.attachments.length} file{task.attachments.length !== 1 ? 's' : ''}</span>
                         </div>
                     )}
                 </div>

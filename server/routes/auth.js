@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
         const validatedData = registerSchema.parse(req.body);
         const { name, email, password } = validatedData;
 
-        const exists = await User.findOne({ email });
+        const exists = await User.findOne({ email }).lean();
         if (exists) return res.status(400).json({ message: 'Email already registered' });
 
         const user = await User.create({ name, email, password });
@@ -50,7 +50,7 @@ router.post('/login', async (req, res) => {
         const validatedData = loginSchema.parse(req.body);
         const { email, password } = validatedData;
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }); // Cannot use lean here because we need matchPassword method
         if (!user || !(await user.matchPassword(password))) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
