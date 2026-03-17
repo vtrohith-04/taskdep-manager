@@ -243,7 +243,7 @@ export default function KanbanView() {
 
         // Don't allow moving blocked tasks to non-blocked statuses manually
         // (they'll unblock automatically when deps are done)
-        if (currentStatus === 'Blocked' && newStatus !== 'Done') {
+        if (currentStatus === 'Blocked') {
             toast.error('This task is blocked by unfinished dependencies');
             return;
         }

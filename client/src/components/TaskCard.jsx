@@ -27,13 +27,16 @@ function isDueOverdue(dueDate) {
 }
 
 export default function TaskCard({ task, onView, onEdit, onDelete, onRevert, onComplete, bulkMode, isSelected, onToggleSelect }) {
-    const [showDetails, setShowDetails] = useState(false);
     // Use effectiveStatus (auto-computed) for display; fall back to stored status
     const displayStatus = task.effectiveStatus || task.status;
     const isBlocked = displayStatus === 'Blocked';
+    const isDone = displayStatus === 'Done';
+    const isDeleted = Boolean(task.deleted);
     const createdDate = formatDate(task.createdAt);
     const dueDate = task.dueDate ? formatDate(task.dueDate) : null;
     const overdue = isDueOverdue(task.dueDate) && displayStatus !== 'Done';
+    const showRevertAction = Boolean(onRevert) && (isDeleted || isDone);
+    const showCompleteAction = Boolean(onComplete) && !isDeleted && !isDone;
 
     return (
         <>
@@ -112,15 +115,15 @@ export default function TaskCard({ task, onView, onEdit, onDelete, onRevert, onC
 
                 {/* Action Button */}
                 <div className="pt-1 pb-1">
-                    {displayStatus === 'Done' ? (
+                    {showRevertAction ? (
                         <button
                             onClick={(e) => { e.stopPropagation(); onRevert && onRevert(task); }}
                             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md active:scale-95"
                         >
                             <RotateCcw size={18} />
-                            Revert to Todo
+                            {isDeleted ? 'Restore Task' : 'Revert to Todo'}
                         </button>
-                    ) : (
+                    ) : showCompleteAction ? (
                         <button
                             onClick={(e) => { e.stopPropagation(); onComplete && onComplete(task); }}
                             disabled={isBlocked}
@@ -132,7 +135,7 @@ export default function TaskCard({ task, onView, onEdit, onDelete, onRevert, onC
                             <CheckCircle2 size={18} />
                             Mark as Complete
                         </button>
-                    )}
+                    ) : null}
                 </div>
 
                 {/* Footer */}

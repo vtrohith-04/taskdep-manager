@@ -56,6 +56,21 @@ describe('Tasks API Routes', () => {
             expect(res.body.pagination.totalPages).toBe(2);
             expect(res.body.pagination.currentPage).toBe(1);
         });
+
+        it('should return every active task when all=true is provided', async () => {
+            await Task.create({ title: 'T1', owner: user._id });
+            await Task.create({ title: 'T2', owner: user._id });
+            await Task.create({ title: 'T3', owner: user._id });
+
+            const res = await request(app)
+                .get('/api/tasks?all=true')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.tasks).toHaveLength(3);
+            expect(res.body.pagination.totalTasks).toBe(3);
+            expect(res.body.pagination.currentPage).toBe(1);
+        });
     });
 
     describe('POST /api/tasks', () => {
@@ -73,6 +88,24 @@ describe('Tasks API Routes', () => {
             expect(res.body.title).toBe('New Task');
             expect(res.body.status).toBe('Todo');
             expect(res.body.priority).toBe('High');
+        });
+
+        it('should persist tags and subtasks when creating a task', async () => {
+            const res = await request(app)
+                .post('/api/tasks')
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    title: 'Structured Task',
+                    status: 'Todo',
+                    priority: 'Medium',
+                    tags: ['Engineering', 'Backend'],
+                    subtasks: [{ title: 'Add route', completed: false }]
+                });
+
+            expect(res.statusCode).toBe(201);
+            expect(res.body.tags).toEqual(['Engineering', 'Backend']);
+            expect(res.body.subtasks).toHaveLength(1);
+            expect(res.body.subtasks[0].title).toBe('Add route');
         });
 
         it('should fail validation on missing title', async () => {
@@ -112,6 +145,24 @@ describe('Tasks API Routes', () => {
 
             expect(res.statusCode).toBe(400);
             expect(res.body.message).toBe('Circular Dependency Detected');
+        });
+
+        it('should reject dependency ids that do not belong to the user', async () => {
+            const otherUser = await User.create({
+                name: 'Other User',
+                email: 'other@example.com',
+                password: 'password123'
+            });
+            const foreignTask = await Task.create({ title: 'Foreign', owner: otherUser._id });
+            const ownTask = await Task.create({ title: 'Owned', owner: user._id });
+
+            const res = await request(app)
+                .put(`/api/tasks/${ownTask._id}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ dependsOn: [foreignTask._id.toString()] });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.message).toBe('One or more dependency tasks not found');
         });
 
         it('should handle deep dependency chains', async () => {
@@ -159,6 +210,95 @@ describe('Tasks API Routes', () => {
 
              expect(res.statusCode).toBe(400);
              expect(res.body.message).toBe('One or more dependency tasks not found');
+        });
+    });
+
+    describe('GET /api/tasks/export', () => {
+        beforeEach(async () => {
+            const dep = await Task.create({ title: 'Dependency Task', owner: user._id, status: 'Done' });
+            await Task.create({
+                title: 'Export Me',
+                description: 'Export description',
+                owner: user._id,
+                status: 'Todo',
+                priority: 'Medium',
+                dependsOn: [dep._id],
+                tags: ['Docs'],
+                subtasks: [{ title: 'Write notes', completed: false }],
+            });
+        });
+
+        it('should export tasks as json', async () => {
+            const res = await request(app)
+                .get('/api/tasks/export?format=json')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.headers['content-type']).toContain('application/json');
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body[0].title).toBeDefined();
+        });
+
+        it('should export tasks as txt', async () => {
+            const res = await request(app)
+                .get('/api/tasks/export?format=txt')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.headers['content-type']).toContain('text/plain');
+            expect(res.text).toContain('Task 1:');
+            expect(res.text).toContain('Export Me');
+        });
+    });
+
+    describe('GET /api/tasks/analytics', () => {
+        it('should return the enhanced analytics payload', async () => {
+            const now = new Date();
+            const threeDaysAgo = new Date(now);
+            threeDaysAgo.setDate(now.getDate() - 3);
+            const tenDaysAgo = new Date(now);
+            tenDaysAgo.setDate(now.getDate() - 10);
+            const overdueDate = new Date(now);
+            overdueDate.setDate(now.getDate() - 2);
+
+            const blocker = await Task.create({
+                title: 'Blocker',
+                owner: user._id,
+                status: 'Todo',
+                priority: 'High',
+                createdAt: tenDaysAgo,
+                dueDate: overdueDate,
+            });
+
+            await Task.create({
+                title: 'Blocked Task',
+                owner: user._id,
+                status: 'Todo',
+                priority: 'Medium',
+                dependsOn: [blocker._id],
+                createdAt: threeDaysAgo,
+            });
+
+            await Task.create({
+                title: 'Completed Task',
+                owner: user._id,
+                status: 'Done',
+                priority: 'Low',
+                createdAt: tenDaysAgo,
+                completedAt: now,
+                dueDate: now,
+            });
+
+            const res = await request(app)
+                .get('/api/tasks/analytics')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.trends).toBeDefined();
+            expect(res.body.execution).toBeDefined();
+            expect(Array.isArray(res.body.priorityStatusMatrix)).toBe(true);
+            expect(res.body.execution.averageCycleDays).toBeGreaterThanOrEqual(1);
+            expect(res.body.execution.onTimeCompletionRate).toBeGreaterThanOrEqual(0);
         });
     });
 });

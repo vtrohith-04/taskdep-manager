@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Plus, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Plus, Download, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import StatsBar from '../components/StatsBar';
 import SearchFilters from '../components/SearchFilters';
 import TaskCard from '../components/TaskCard';
@@ -10,7 +10,7 @@ import api from '../api/axios';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
-    const { tasks, pagination, loading, deleteTask, updateTask, fetchTasks } = useTasks();
+    const { tasks, loading, deleteTask, updateTask } = useTasks();
     const [modalOpen, setModalOpen] = useState(false);
     const [editTask, setEditTask] = useState(null);
     const [isViewOnly, setIsViewOnly] = useState(false);
@@ -21,12 +21,9 @@ export default function Dashboard() {
     const [selectedTasks, setSelectedTasks] = useState(new Set());
     const [bulkMode, setBulkMode] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [exportMenuOpen, setExportMenuOpen] = useState(false);
     const ITEMS_PER_PAGE = 12;
-
-    // Fetch tasks when page changes
-    useEffect(() => {
-        fetchTasks(currentPage, ITEMS_PER_PAGE);
-    }, [currentPage, fetchTasks]);
+    const exportMenuRef = useRef(null);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -47,6 +44,17 @@ export default function Dashboard() {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    useEffect(() => {
+        const handleOutsideClick = (event) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+                setExportMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, []);
+
     const filtered = useMemo(() => {
         return tasks.filter((t) => {
             const matchSearch =
@@ -55,7 +63,7 @@ export default function Dashboard() {
                 t.description?.toLowerCase().includes(search.toLowerCase()) ||
                 t.tags?.some(tag => tag.toLowerCase().includes(search.toLowerCase()));
             const matchStatus = statusFilter === 'All Status' || t.effectiveStatus === statusFilter;
-            const matchPriority = priorityFilter === 'All Priority' || t.priority === priorityFilter;
+            const matchPriority = priorityFilter === 'All Priority' || (t.effectivePriority || t.priority) === priorityFilter;
             const matchTag = tagFilter === 'All Tags' || t.tags?.includes(tagFilter);
             return matchSearch && matchStatus && matchPriority && matchTag;
         });
@@ -73,9 +81,8 @@ export default function Dashboard() {
         return ['All Tags', ...Array.from(set).sort()];
     }, [tasks]);
 
-    // Pagination from server
-    const totalPages = pagination?.totalPages || 0;
-    const paginatedTasks = filtered;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+    const paginatedTasks = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     const openAdd = () => { setEditTask(null); setIsViewOnly(false); setModalOpen(true); };
     const openEdit = (task) => { setEditTask(task); setIsViewOnly(false); setModalOpen(true); };
@@ -100,17 +107,18 @@ export default function Dashboard() {
         });
     };
 
-    const handleExport = async () => {
+    const handleExport = async (format) => {
         try {
-            const response = await api.get('/tasks/export', { responseType: 'blob' });
+            const response = await api.get(`/tasks/export?format=${format}`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', 'tasks.csv');
+            link.setAttribute('download', `tasks.${format}`);
             document.body.appendChild(link);
             link.click();
             link.remove();
-            toast.success('Tasks exported successfully');
+            setExportMenuOpen(false);
+            toast.success(`Tasks exported as ${format.toUpperCase()}`);
         } catch (err) {
             toast.error('Failed to export tasks');
         }
@@ -216,13 +224,30 @@ export default function Dashboard() {
                         >
                             {bulkMode ? 'Exit Bulk Mode' : 'Bulk Select'}
                         </button>
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-5 py-3 bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
-                        >
-                            <Download size={18} />
-                            Export CSV
-                        </button>
+                        <div className="relative" ref={exportMenuRef}>
+                            <button
+                                onClick={() => setExportMenuOpen((open) => !open)}
+                                className="flex items-center gap-2 px-5 py-3 bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+                            >
+                                <Download size={18} />
+                                Export
+                                <ChevronDown size={16} className={`transition-transform ${exportMenuOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {exportMenuOpen && (
+                                <div className="absolute right-0 mt-2 w-36 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl z-20">
+                                    {['csv', 'json', 'txt'].map((format) => (
+                                        <button
+                                            key={format}
+                                            type="button"
+                                            onClick={() => handleExport(format)}
+                                            className="block w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                        >
+                                            {format.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <button
                             onClick={openAdd}
                             className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"

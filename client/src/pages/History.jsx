@@ -47,7 +47,7 @@ export default function History() {
                                 key={task._id}
                                 task={task}
                                 onView={openView}
-                                onRevert={!task.deleted ? () => restoreTask(task._id) : undefined}
+                                onRevert={task.deleted ? () => restoreTask(task._id) : undefined}
                             />
                         ))}
                     </div>

@@ -72,7 +72,7 @@ function taskReducer(state, action) {
         case 'SET_LOADING':
             return { ...state, loading: action.payload };
         case 'SET_ERROR':
-            return { ...state, error: action.payload };
+            return { ...state, error: action.payload, loading: false };
         case 'SET_HISTORY':
             return { ...state, history: action.payload };
         default:
@@ -102,11 +102,11 @@ export function TaskProvider({ children }) {
         error: null,
     });
 
-    const fetchTasks = useCallback(async (page = 1, limit = 12) => {
+    const fetchTasks = useCallback(async () => {
         if (!user) return;
         dispatch({ type: 'SET_LOADING', payload: true });
         try {
-            const { data } = await api.get(`/tasks?page=${page}&limit=${limit}`);
+            const { data } = await api.get('/tasks?all=true');
             dispatch({ type: 'SET_TASKS', payload: data });
         } catch (err) {
             dispatch({ type: 'SET_ERROR', payload: err.response?.data?.message || 'Failed to fetch tasks' });
@@ -129,29 +129,25 @@ export function TaskProvider({ children }) {
 
     const addTask = async (taskData) => {
         const { data } = await api.post('/tasks', taskData);
-        // After add, go to page 1 to see the new task
-        await fetchTasks(1, state.pagination.limit);
+        await fetchTasks();
         return data;
     };
 
     const updateTask = async (id, taskData) => {
         const { data } = await api.put(`/tasks/${id}`, taskData);
-        // Re-fetch current page so all dependent tasks' effectiveStatus refreshes
-        await fetchTasks(state.pagination.currentPage, state.pagination.limit);
+        await fetchTasks();
         return data;
     };
 
     const deleteTask = async (id) => {
         await api.delete(`/tasks/${id}`);
-        // Re-fetch current page to pull in next task and update counts
-        await fetchTasks(state.pagination.currentPage, state.pagination.limit);
+        await fetchTasks();
     };
 
     const restoreTask = async (id) => {
         const { data } = await api.put(`/tasks/${id}/restore`);
         dispatch({ type: 'SET_HISTORY', payload: state.history.filter((t) => t._id !== id) });
-        // After restore, refresh current page
-        await fetchTasks(state.pagination.currentPage, state.pagination.limit);
+        await fetchTasks();
         return data;
     };
 

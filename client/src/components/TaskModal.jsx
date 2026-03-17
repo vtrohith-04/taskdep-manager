@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, AlertCircle, GitFork, ChevronDown, ChevronUp, Paperclip, Loader2, Trash2, FileText, Clock } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import api from '../api/axios';
@@ -62,11 +62,33 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
         }
     }, [editTask, isOpen]);
 
-    if (!isOpen) return null;
+    const dependencyLookup = useMemo(() => {
+        const lookup = new Map();
+
+        tasks.forEach((task) => {
+            lookup.set(task._id, task);
+        });
+
+        editTask?.dependsOn?.forEach((dep) => {
+            if (dep && typeof dep === 'object' && dep._id && !lookup.has(dep._id)) {
+                lookup.set(dep._id, dep);
+            }
+        });
+
+        return lookup;
+    }, [tasks, editTask]);
 
     // Exclude self from dependency options; only show non-deleted tasks
     const availableTasks = tasks.filter((t) => !editTask || t._id !== editTask._id);
-    const selectedDeps = tasks.filter(t => form.dependsOn.includes(t._id));
+    const selectedDeps = form.dependsOn
+        .map((depId) => dependencyLookup.get(depId) || {
+            _id: depId,
+            title: `Task ${String(depId).slice(-6)}`,
+            effectiveStatus: 'Unknown',
+        })
+        .filter(Boolean);
+
+    if (!isOpen) return null;
 
     const toggleDep = (id) => {
         if (isViewOnly) return;
