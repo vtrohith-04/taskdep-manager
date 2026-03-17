@@ -1,6 +1,6 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const path = require('path');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 
 // Configure Cloudinary
 cloudinary.config({
@@ -9,17 +9,47 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Setup Multer Storage
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'taskdep-attachments',
-        allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'csv', 'txt'], // adjust allowed formats
-        // For generating a unique filename or keeping original
-        public_id: (req, file) => file.originalname.split('.')[0] + '-' + Date.now()
+const allowedExtensions = new Set(['.jpg', '.jpeg', '.png', '.pdf', '.csv', '.txt']);
+
+function sanitizePublicId(filename) {
+    return path.basename(filename, path.extname(filename))
+        .replace(/[^a-zA-Z0-9-_]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 60) || 'attachment';
+}
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024,
+    },
+    fileFilter: (req, file, cb) => {
+        const extension = path.extname(file.originalname || '').toLowerCase();
+        if (!allowedExtensions.has(extension)) {
+            return cb(new Error('Unsupported file type'));
+        }
+        cb(null, true);
     }
 });
 
-const upload = multer({ storage: storage });
+function uploadBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const publicId = `${sanitizePublicId(file.originalname)}-${Date.now()}`;
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: 'taskdep-attachments',
+                public_id: publicId,
+                resource_type: 'auto',
+            },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            }
+        );
 
-module.exports = { cloudinary, upload };
+        stream.end(file.buffer);
+    });
+}
+
+module.exports = { cloudinary, upload, uploadBuffer };
