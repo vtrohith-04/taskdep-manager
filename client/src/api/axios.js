@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 
+const rawApiUrl = import.meta.env.VITE_API_URL;
+const normalizedApiUrl = rawApiUrl ? rawApiUrl.replace(/\/$/, '') : null;
+
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: normalizedApiUrl || '/api',
 });
 
 // Attach JWT token to every request
