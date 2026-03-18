@@ -3,6 +3,7 @@ services:
     name: taskdep-api
     env: node
     plan: free
+    rootDir: server
     buildCommand: npm ci
     startCommand: npm start
     envVars:
