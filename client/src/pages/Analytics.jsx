@@ -18,11 +18,16 @@ import {
   Activity,
   AlertCircle,
   BarChart3,
+  ChevronDown,
   CheckCircle2,
   Clock3,
+  History,
   GitFork,
   Layers3,
+  PencilLine,
+  RotateCcw,
   TimerReset,
+  Trash2,
   TrendingUp,
 } from 'lucide-react';
 import api from '../api/axios';
@@ -41,6 +46,8 @@ const PRIORITY_TONES = {
   Low: 'from-sky-500 to-cyan-500',
 };
 
+const ACTIVITY_FILTERS = ['All', 'Created', 'Updated', 'Deleted', 'Restored'];
+
 function formatDelta(value) {
   if (value === 0) return 'No change';
   return `${value > 0 ? '+' : ''}${value}`;
@@ -50,26 +57,98 @@ function formatShortDate(value) {
   return new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
-function SectionCard({ title, subtitle, icon: Icon, children, className = '' }) {
+function getActivityMeta(description = '') {
+  const normalized = description.toLowerCase();
+
+  if (normalized.startsWith('created')) {
+    return {
+      label: 'Created',
+      icon: CheckCircle2,
+      chipClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+      dotClass: 'bg-emerald-500 ring-emerald-100 dark:ring-emerald-950/70',
+    };
+  }
+
+  if (normalized.startsWith('deleted')) {
+    return {
+      label: 'Deleted',
+      icon: Trash2,
+      chipClass: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+      dotClass: 'bg-rose-500 ring-rose-100 dark:ring-rose-950/70',
+    };
+  }
+
+  if (normalized.startsWith('restored')) {
+    return {
+      label: 'Restored',
+      icon: RotateCcw,
+      chipClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+      dotClass: 'bg-amber-500 ring-amber-100 dark:ring-amber-950/70',
+    };
+  }
+
+  if (normalized.startsWith('changed')) {
+    return {
+      label: 'Updated',
+      icon: PencilLine,
+      chipClass: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
+      dotClass: 'bg-sky-500 ring-sky-100 dark:ring-sky-950/70',
+    };
+  }
+
+  return {
+    label: 'Activity',
+    icon: History,
+    chipClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    dotClass: 'bg-slate-500 ring-slate-100 dark:ring-slate-900/70',
+  };
+}
+
+function SectionCard({
+  title,
+  subtitle,
+  icon: Icon,
+  children,
+  className = '',
+  collapsible = false,
+  defaultOpen = true,
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
-    <div className={`rounded-[28px] border border-slate-200/70 bg-white/90 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.5)] backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/80 md:p-6 ${className}`}>
+    <div className={`rounded-[28px] border border-slate-200/70 bg-white/90 p-4 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.5)] backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/80 md:p-6 ${className}`}>
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <p className="text-lg font-semibold text-slate-950 dark:text-white">{title}</p>
           {subtitle && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>}
         </div>
-        <div className="rounded-2xl bg-slate-100 p-3 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-          <Icon size={20} />
+        <div className="flex items-center gap-2">
+          {collapsible && (
+            <button
+              type="button"
+              onClick={() => setIsOpen((current) => !current)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden"
+              aria-label={isOpen ? `Collapse ${title}` : `Expand ${title}`}
+              aria-expanded={isOpen}
+            >
+              <ChevronDown size={20} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+          <div className="rounded-2xl bg-slate-100 p-3 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <Icon size={20} />
+          </div>
         </div>
       </div>
-      {children}
+      <div className={`${collapsible && !isOpen ? 'hidden md:block' : 'block'}`}>
+        {children}
+      </div>
     </div>
   );
 }
 
 function MetricCard({ label, value, note, accent, icon: Icon }) {
   return (
-    <div className="rounded-[24px] border border-slate-200/70 bg-white/95 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/85">
+    <div className="rounded-[24px] border border-slate-200/70 bg-white/95 p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/85 md:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
@@ -87,6 +166,8 @@ function MetricCard({ label, value, note, accent, icon: Icon }) {
 export default function Analytics() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activityFilter, setActivityFilter] = useState('All');
+  const [activityReady, setActivityReady] = useState(false);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -129,6 +210,19 @@ export default function Analytics() {
     return Math.round((data.stats.done / data.stats.total) * 100);
   }, [data]);
 
+  const filteredRecentActivity = useMemo(() => {
+    if (!data) return [];
+    if (activityFilter === 'All') return data.recentActivity;
+
+    return data.recentActivity.filter((activity) => getActivityMeta(activity.description).label === activityFilter);
+  }, [activityFilter, data]);
+
+  useEffect(() => {
+    setActivityReady(false);
+    const timer = setTimeout(() => setActivityReady(true), 20);
+    return () => clearTimeout(timer);
+  }, [activityFilter, data?.recentActivity?.length]);
+
   if (loading) {
     return (
       <div className="p-6 pt-20 flex min-h-[420px] items-center justify-center">
@@ -152,8 +246,8 @@ export default function Analytics() {
   }
 
   return (
-    <div className="p-4 pt-16 md:pt-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      <section className="relative overflow-hidden rounded-[32px] border border-slate-200/70 bg-white/90 px-6 py-6 shadow-[0_28px_90px_-50px_rgba(15,23,42,0.55)] backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/80 md:px-8 md:py-8">
+    <div className="mx-auto max-w-7xl space-y-5 px-4 pb-6 pt-16 md:space-y-6 md:px-8 md:pb-8 md:pt-6">
+      <section className="relative overflow-hidden rounded-[32px] border border-slate-200/70 bg-white/90 px-5 py-5 shadow-[0_28px_90px_-50px_rgba(15,23,42,0.55)] backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/80 md:px-8 md:py-8">
         <div className="absolute inset-0 opacity-80">
           <div className="absolute -top-16 right-0 h-44 w-44 rounded-full bg-sky-400/20 blur-3xl dark:bg-sky-500/15" />
           <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-emerald-400/15 blur-3xl dark:bg-emerald-500/10" />
@@ -170,7 +264,7 @@ export default function Analytics() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="Completion"
               value={`${completionRate}%`}
@@ -203,7 +297,7 @@ export default function Analytics() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
         <SectionCard
           title="Momentum"
           subtitle="A sharper read on how work is moving this week versus the previous one."
@@ -294,6 +388,7 @@ export default function Analytics() {
           subtitle="See where pressure is building across high, medium, and low priority work."
           icon={Layers3}
           className="xl:col-span-7"
+          collapsible
         >
           <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -319,6 +414,7 @@ export default function Analytics() {
           subtitle="A quick distribution snapshot of your current board."
           icon={CheckCircle2}
           className="xl:col-span-5"
+          collapsible
         >
           <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -357,6 +453,7 @@ export default function Analytics() {
           subtitle="The items most likely to slow the team down."
           icon={AlertCircle}
           className="xl:col-span-4"
+          collapsible
         >
           <div className="space-y-3">
             {data.overdueTasks.length === 0 ? (
@@ -366,8 +463,19 @@ export default function Analytics() {
               </div>
             ) : (
               data.overdueTasks.slice(0, 5).map((task) => (
-                <div key={task._id} className="rounded-2xl border border-rose-100 bg-rose-50/70 p-4 dark:border-rose-900/40 dark:bg-rose-900/10">
-                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{task.title}</p>
+                <div key={task._id} className="min-h-[108px] rounded-2xl border border-rose-100 bg-rose-50/70 p-4 dark:border-rose-900/40 dark:bg-rose-900/10">
+                  <p
+                    className="text-sm font-semibold leading-6 text-slate-900 dark:text-white"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                    title={task.title}
+                  >
+                    {task.title}
+                  </p>
                   <p className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-300">
                     Due {new Date(task.dueDate).toLocaleDateString()}
                   </p>
@@ -382,6 +490,7 @@ export default function Analytics() {
           subtitle="Tasks holding up the largest amount of downstream work."
           icon={GitFork}
           className="xl:col-span-4"
+          collapsible
         >
           <div className="space-y-3">
             {data.bottlenecks.length === 0 ? (
@@ -390,9 +499,20 @@ export default function Analytics() {
               </div>
             ) : (
               data.bottlenecks.map((item, index) => (
-                <div key={`${item.title}-${index}`} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                <div key={`${item.title}-${index}`} className="flex min-h-[92px] items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{item.title}</p>
+                    <p
+                      className="text-sm font-semibold leading-6 text-slate-900 dark:text-white"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                      title={item.title}
+                    >
+                      {item.title}
+                    </p>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Blocks {item.count} task{item.count !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white dark:bg-white dark:text-slate-950">
@@ -409,27 +529,60 @@ export default function Analytics() {
           subtitle="The latest changes made across your tasks."
           icon={Activity}
           className="xl:col-span-4"
+          collapsible
         >
-          <div className="space-y-4">
-            {data.recentActivity.length === 0 ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {ACTIVITY_FILTERS.map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setActivityFilter(filter)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  activityFilter === filter
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+          <div className="max-h-[560px] space-y-4 overflow-y-auto pr-1.5 [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-slate-100/80 dark:[&::-webkit-scrollbar-track]:bg-slate-900/70">
+            {filteredRecentActivity.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center dark:border-slate-800 dark:bg-slate-900/60">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No recent activity yet</p>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                  {activityFilter === 'All' ? 'No recent activity yet' : `No ${activityFilter.toLowerCase()} activity yet`}
+                </p>
               </div>
             ) : (
-              data.recentActivity.map((activity, index) => (
-                <div key={activity._id || index} className="relative pl-5">
-                  {index !== data.recentActivity.length - 1 && (
+              filteredRecentActivity.map((activity, index) => {
+                const meta = getActivityMeta(activity.description);
+                const ActivityIcon = meta.icon;
+
+                return (
+                <div
+                  key={activity._id || index}
+                  className={`group relative pl-5 transition-all duration-300 ${activityReady ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}
+                  style={{ transitionDelay: `${Math.min(index * 45, 180)}ms` }}
+                >
+                  {index !== filteredRecentActivity.length - 1 && (
                     <div className="absolute left-[6px] top-5 bottom-[-18px] w-px bg-slate-200 dark:bg-slate-800" />
                   )}
-                  <div className="absolute left-0 top-1 h-3.5 w-3.5 rounded-full bg-sky-500 ring-4 ring-sky-100 dark:ring-sky-950/70" />
-                  <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{activity.description}</p>
+                  <div className={`absolute left-0 top-1 h-3.5 w-3.5 rounded-full ring-4 ${meta.dotClass}`} />
+                  <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-slate-300 group-hover:bg-white group-hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:group-hover:border-slate-700 dark:group-hover:bg-slate-900/80">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-medium leading-6 text-slate-700 dark:text-slate-200">{activity.description}</p>
+                      <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.chipClass}`}>
+                        <ActivityIcon size={12} />
+                        {meta.label}
+                      </span>
+                    </div>
                     <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                       {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
-              ))
+              )})
             )}
           </div>
         </SectionCard>
