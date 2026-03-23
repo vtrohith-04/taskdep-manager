@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+app.use(compression());
 app.use(express.json());
 
 const authLimiter = rateLimit({

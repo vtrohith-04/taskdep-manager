@@ -61,9 +61,11 @@ function computeStats(tasks) {
     const threeDaysFromNow = new Date();
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
+    const taskById = new Map(tasks.map(t => [String(t._id), t]));
+
     tasks.forEach((task) => {
         const isBlocked = task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some((depId) => {
-            const dep = tasks.find((candidate) => String(candidate._id) === String(depId));
+            const dep = taskById.get(String(depId));
             return dep && dep.status !== 'Done';
         });
 

@@ -12,4 +12,15 @@ export default defineConfig({
       '/api': 'http://localhost:5000',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts', 'chart.js', 'react-chartjs-2'],
+          dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities', '@xyflow/react'],
+        },
+      },
+    },
+  },
 })
