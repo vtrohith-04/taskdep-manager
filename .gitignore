@@ -47,6 +47,11 @@ Thumbs.db
 data/
 *.db
 
+# Project documentation (local only, not for repo)
+PROJECT_REPORT.md
+PROJECT_LEARNING_GUIDE.md
+HOW_IT_WORKS.md
+
 # Temporary files
 *.tmp
 *.temp
