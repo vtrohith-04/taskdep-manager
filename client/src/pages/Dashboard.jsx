@@ -25,6 +25,11 @@ export default function Dashboard() {
     const ITEMS_PER_PAGE = 12;
     const exportMenuRef = useRef(null);
 
+    function openAdd() { setEditTask(null); setIsViewOnly(false); setModalOpen(true); }
+    function openEdit(task) { setEditTask(task); setIsViewOnly(false); setModalOpen(true); }
+    function openView(task) { setEditTask(task); setIsViewOnly(true); setModalOpen(true); }
+    function closeModal() { setModalOpen(false); setEditTask(null); setIsViewOnly(false); }
+
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -69,10 +74,25 @@ export default function Dashboard() {
         });
     }, [tasks, search, statusFilter, priorityFilter, tagFilter]);
 
-    // Reset page when filters change
-    useEffect(() => {
+    const handleSearchChange = (value) => {
+        setSearch(value);
         setCurrentPage(1);
-    }, [search, statusFilter, priorityFilter, tagFilter]);
+    };
+
+    const handleStatusFilterChange = (value) => {
+        setStatusFilter(value);
+        setCurrentPage(1);
+    };
+
+    const handlePriorityFilterChange = (value) => {
+        setPriorityFilter(value);
+        setCurrentPage(1);
+    };
+
+    const handleTagFilterChange = (value) => {
+        setTagFilter(value);
+        setCurrentPage(1);
+    };
 
     // Extract unique tags for filtering
     const allTags = useMemo(() => {
@@ -83,11 +103,6 @@ export default function Dashboard() {
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
     const paginatedTasks = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-    const openAdd = () => { setEditTask(null); setIsViewOnly(false); setModalOpen(true); };
-    const openEdit = (task) => { setEditTask(task); setIsViewOnly(false); setModalOpen(true); };
-    const openView = (task) => { setEditTask(task); setIsViewOnly(true); setModalOpen(true); };
-    const closeModal = () => { setModalOpen(false); setEditTask(null); setIsViewOnly(false); };
 
     const handleDelete = async (id) => {
         if (window.confirm('Delete this task?')) await deleteTask(id);
@@ -119,7 +134,7 @@ export default function Dashboard() {
             link.remove();
             setExportMenuOpen(false);
             toast.success(`Tasks exported as ${format.toUpperCase()}`);
-        } catch (err) {
+        } catch (_err) {
             toast.error('Failed to export tasks');
         }
     };
@@ -151,7 +166,7 @@ export default function Dashboard() {
             await Promise.all(Array.from(selectedTasks).map(id => deleteTask(id)));
             setSelectedTasks(new Set());
             toast.success(`Deleted ${selectedTasks.size} tasks`);
-        } catch (err) {
+        } catch (_err) {
             toast.error('Failed to delete some tasks');
         }
     };
@@ -171,7 +186,7 @@ export default function Dashboard() {
             }));
             setSelectedTasks(new Set());
             toast.success(`Completed ${selectedTasks.size} tasks`);
-        } catch (err) {
+        } catch (_err) {
             toast.error('Failed to complete some tasks');
         }
     };
@@ -263,10 +278,10 @@ export default function Dashboard() {
 
                 {/* Filters */}
                 <SearchFilters
-                    search={search} setSearch={setSearch}
-                    statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-                    priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
-                    tagFilter={tagFilter} setTagFilter={setTagFilter}
+                    search={search} setSearch={handleSearchChange}
+                    statusFilter={statusFilter} setStatusFilter={handleStatusFilterChange}
+                    priorityFilter={priorityFilter} setPriorityFilter={handlePriorityFilterChange}
+                    tagFilter={tagFilter} setTagFilter={handleTagFilterChange}
                     availableTags={allTags}
                 />
 

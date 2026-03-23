@@ -104,15 +104,17 @@ function getActivityMeta(description = '') {
   };
 }
 
-function SectionCard({
-  title,
-  subtitle,
-  icon: Icon,
-  children,
-  className = '',
-  collapsible = false,
-  defaultOpen = true,
-}) {
+function SectionCard(props) {
+  const {
+    title,
+    subtitle,
+    icon,
+    children,
+    className = '',
+    collapsible = false,
+    defaultOpen = true,
+  } = props;
+  const IconComponent = icon;
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -135,7 +137,7 @@ function SectionCard({
             </button>
           )}
           <div className="rounded-2xl bg-slate-100 p-3 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-            <Icon size={20} />
+            <IconComponent size={20} />
           </div>
         </div>
       </div>
@@ -146,7 +148,9 @@ function SectionCard({
   );
 }
 
-function MetricCard({ label, value, note, accent, icon: Icon }) {
+function MetricCard(props) {
+  const { label, value, note, accent, icon } = props;
+  const IconComponent = icon;
   return (
     <div className="rounded-[24px] border border-slate-200/70 bg-white/95 p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/85 md:p-5">
       <div className="flex items-start justify-between gap-4">
@@ -156,7 +160,7 @@ function MetricCard({ label, value, note, accent, icon: Icon }) {
           {note && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{note}</p>}
         </div>
         <div className={`rounded-2xl bg-gradient-to-br p-3 text-white shadow-lg ${accent}`}>
-          <Icon size={20} />
+          <IconComponent size={20} />
         </div>
       </div>
     </div>
@@ -174,7 +178,7 @@ export default function Analytics() {
       try {
         const response = await api.get('/tasks/analytics');
         setData(response.data);
-      } catch (err) {
+      } catch (_err) {
         toast.error('Failed to load analytics');
       } finally {
         setLoading(false);

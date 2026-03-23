@@ -123,7 +123,7 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
                 attachments: [...prev.attachments, res.data]
             }));
             toast.success('File attached');
-        } catch (error) {
+        } catch (_error) {
             toast.error('File upload failed');
         } finally {
             setUploading(false);
@@ -140,7 +140,7 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
 
         try {
             await api.delete(`/upload/${publicId}`);
-        } catch (error) {
+        } catch (_error) {
             toast.error('Failed to delete file from server');
             // Revert on failure could be implemented here
         }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, History, Sun, Moon, LogOut, ShieldCheck, User, PieChart, Network, Kanban, CalendarRange, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,12 +8,6 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     const { user, logout } = useAuth();
     const { dark, toggleTheme } = useTheme();
     const [mobileOpen, setMobileOpen] = useState(false);
-    const location = useLocation();
-
-    // Close mobile sidebar on route change
-    useEffect(() => {
-        setMobileOpen(false);
-    }, [location.pathname]);
 
     // Close on escape key
     useEffect(() => {
@@ -64,27 +58,27 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-                <NavLink to="/dashboard" className={linkClass} title="Dashboard">
+                <NavLink to="/dashboard" className={linkClass} title="Dashboard" onClick={() => setMobileOpen(false)}>
                     <LayoutDashboard size={18} className="shrink-0" />
                     {!collapsed && <span>Dashboard</span>}
                 </NavLink>
-                <NavLink to="/kanban" className={linkClass} title="Kanban Board">
+                <NavLink to="/kanban" className={linkClass} title="Kanban Board" onClick={() => setMobileOpen(false)}>
                     <Kanban size={18} className="shrink-0" />
                     {!collapsed && <span>Kanban Board</span>}
                 </NavLink>
-                <NavLink to="/gantt" className={linkClass} title="Gantt Chart">
+                <NavLink to="/gantt" className={linkClass} title="Gantt Chart" onClick={() => setMobileOpen(false)}>
                     <CalendarRange size={18} className="shrink-0" />
                     {!collapsed && <span>Gantt Chart</span>}
                 </NavLink>
-                <NavLink to="/graph" className={linkClass} title="Dependency Graph">
+                <NavLink to="/graph" className={linkClass} title="Dependency Graph" onClick={() => setMobileOpen(false)}>
                     <Network size={18} className="shrink-0" />
                     {!collapsed && <span>Dependency Graph</span>}
                 </NavLink>
-                <NavLink to="/analytics" className={linkClass} title="Project Analytics">
+                <NavLink to="/analytics" className={linkClass} title="Project Analytics" onClick={() => setMobileOpen(false)}>
                     <PieChart size={18} className="shrink-0" />
                     {!collapsed && <span>Analytics</span>}
                 </NavLink>
-                <NavLink to="/history" className={linkClass} title="Task History">
+                <NavLink to="/history" className={linkClass} title="Task History" onClick={() => setMobileOpen(false)}>
                     <History size={18} className="shrink-0" />
                     {!collapsed && <span>Task History</span>}
                 </NavLink>

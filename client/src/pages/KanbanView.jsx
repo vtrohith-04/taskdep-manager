@@ -3,7 +3,6 @@ import { Plus, Calendar, AlertTriangle, GripVertical, Paperclip } from 'lucide-r
 import {
     DndContext,
     DragOverlay,
-    pointerWithin,
     rectIntersection,
     PointerSensor,
     useSensor,

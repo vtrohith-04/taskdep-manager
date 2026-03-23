@@ -1,11 +1,12 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import api from '../api/axios';
 import { toast } from 'sonner';
+import { getStoredUser } from '../utils/storage';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || 'null'));
+    const [user, setUser] = useState(() => getStoredUser());
     const [loading, setLoading] = useState(false);
 
     const login = async (email, password) => {

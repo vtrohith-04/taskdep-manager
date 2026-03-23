@@ -33,7 +33,7 @@ class ErrorBoundary extends Component {
                         >
                             Refresh Page
                         </button>
-                        {process.env.NODE_ENV === 'development' && (
+                        {import.meta.env.DEV && (
                             <details className="mt-4 text-left">
                                 <summary className="cursor-pointer text-sm text-slate-500 hover:text-slate-700">
                                     Error Details (Dev Mode)

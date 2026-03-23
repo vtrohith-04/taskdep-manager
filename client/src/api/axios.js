@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from 'sonner';
+import { getStoredUser } from '../utils/storage';
 
 const rawApiUrl = import.meta.env.VITE_API_URL;
 const normalizedApiUrl = rawApiUrl ? rawApiUrl.replace(/\/$/, '') : null;
@@ -10,7 +11,7 @@ const api = axios.create({
 
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const user = getStoredUser();
     if (user?.token) {
         config.headers.Authorization = `Bearer ${user.token}`;
     }
@@ -23,7 +24,7 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Only redirect if user was logged in (avoid redirect loop on login page)
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const user = getStoredUser();
             if (user) {
                 localStorage.removeItem('user');
                 toast.error('Session expired. Please sign in again.');

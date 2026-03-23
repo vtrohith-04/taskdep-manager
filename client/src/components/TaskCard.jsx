@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Calendar, Clock, GitFork, Pencil, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X, FileText, Paperclip } from 'lucide-react';
 
 const priorityColors = {
