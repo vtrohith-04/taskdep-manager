@@ -12,6 +12,16 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+function getDbState() {
+    const states = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting',
+    };
+    return states[mongoose.connection.readyState] || 'unknown';
+}
+
 app.use(helmet());
 app.use(morgan('dev'));
 
@@ -52,7 +62,11 @@ app.get('/', (req, res) =>
         health: '/api/health',
     })
 );
-app.get('/api/health', (req, res) => res.status(200).json({ ok: true }));
+app.get('/api/health', (req, res) => {
+    const db = getDbState();
+    const ok = db === 'connected';
+    res.status(ok ? 200 : 503).json({ ok, db });
+});
 
 app.use((err, req, res, next) => {
     if (err.message === 'Not allowed by CORS') {
@@ -63,17 +77,22 @@ app.use((err, req, res, next) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
+    const server = app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+
+    const mongoTimeout = Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 15000);
+
     mongoose
-        .connect(process.env.MONGO_URI)
+        .connect(process.env.MONGO_URI, {
+            serverSelectionTimeoutMS: mongoTimeout,
+        })
         .then(() => {
             console.log('MongoDB connected');
-            app.listen(port, () => {
-                console.log(`Server running on port ${port}`);
-            });
         })
         .catch((err) => {
             console.error('MongoDB connection error:', err.message);
-            process.exit(1);
+            server.close(() => process.exit(1));
         });
 }
 

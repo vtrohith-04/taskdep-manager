@@ -64,9 +64,10 @@ function computeStats(tasks) {
     const taskById = new Map(tasks.map(t => [String(t._id), t]));
 
     tasks.forEach((task) => {
-        const isBlocked = task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some((depId) => {
-            const dep = taskById.get(String(depId));
-            return dep && dep.status !== 'Done';
+        const isBlocked = task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some((dep) => {
+            const depId = typeof dep === 'object' ? dep._id : dep;
+            const depTask = taskById.get(String(depId));
+            return depTask && depTask.status !== 'Done';
         });
 
         if (isBlocked) {
@@ -106,8 +107,6 @@ router.get('/', async (req, res) => {
         const skip = (page - 1) * limit;
         const query = { owner: req.user._id, deleted: false };
 
-        const totalTasks = await Task.countDocuments(query);
-        const allUserTasks = await Task.find(query).select('status dependsOn dueDate').lean();
         let taskQuery = Task.find(query)
             .populate('dependsOn', 'title _id status')
             .sort({ createdAt: -1 });
@@ -117,10 +116,22 @@ router.get('/', async (req, res) => {
         }
 
         const tasks = await taskQuery.lean();
+        let totalTasks;
+        let statsTasks;
+
+        if (fetchAll) {
+            totalTasks = tasks.length;
+            statsTasks = tasks;
+        } else {
+            [totalTasks, statsTasks] = await Promise.all([
+                Task.countDocuments(query),
+                Task.find(query).select('status dependsOn dueDate').lean(),
+            ]);
+        }
 
         res.json({
             tasks,
-            stats: computeStats(allUserTasks),
+            stats: computeStats(statsTasks),
             pagination: {
                 totalTasks,
                 totalPages: fetchAll ? 1 : Math.ceil(totalTasks / limit),

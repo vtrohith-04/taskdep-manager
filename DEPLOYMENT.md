@@ -28,6 +28,17 @@ Use the root [`render.yaml`](./render.yaml) blueprint or create a web service ma
 - Start Command: `npm start`
 - Runtime: Node 20+
 
+### If Render does not auto-deploy after push
+In monorepo setups, Render may only deploy when files under the service root change.
+
+Check these in Render service settings:
+- Auto Deploy: **On**
+- Branch: **main** (or your production branch)
+- Root Directory: **server**
+- Build Filters / Ignored Paths: make sure you are not excluding valid backend changes
+
+Important: if you only change root-level files (for example `.gitignore`) and no files under `server/`, Render may skip deploy while Vercel still deploys.
+
 ### Required environment variables
 - `MONGO_URI`
 - `JWT_SECRET`
@@ -46,6 +57,25 @@ Optional email variables:
 
 ### Health check
 - `GET /api/health`
+
+### If deploy is slow and logs show "Port scan timeout"
+If logs contain "Port scan timeout reached, no open ports detected", your app is not binding `PORT` quickly enough.
+
+Use this startup pattern:
+- Start Express listener immediately on `process.env.PORT`
+- Connect MongoDB after server starts
+- Use a bounded Mongo server selection timeout (for example 15s)
+- Exit fast on DB connect failure so Render fails quickly instead of waiting many minutes
+
+### Free-tier cold start mitigation (if you cannot upgrade yet)
+Render free instances can sleep and add 30-60s to the first API request.
+
+Use an external uptime monitor (for example UptimeRobot) to ping:
+- `https://<your-render-service>.onrender.com/api/health`
+- Interval: every 10 minutes
+- Method: `GET`
+
+This keeps the service warm and removes most first-request delay for users.
 
 ## 2) Deploy Frontend (Vercel)
 
