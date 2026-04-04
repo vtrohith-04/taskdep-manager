@@ -33,8 +33,8 @@ export default function Dashboard() {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // Ctrl/Cmd + N for new task
-            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            // Ctrl/Cmd + Alt/Option + N for new task
+            if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'n') {
                 e.preventDefault();
                 openAdd();
             }
@@ -198,7 +198,7 @@ export default function Dashboard() {
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Task Dependencies</h1>
                         <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1 font-medium">Manage tasks and their dependency relationships</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 hidden sm:block">💡 Keyboard shortcuts: Ctrl+N (New task), Ctrl+/ (Search)</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 hidden sm:block">💡 Keyboard shortcuts: Ctrl+Alt+N (New task), Ctrl+/ (Search)</p>
                     </div>
                     <div className="flex flex-wrap gap-2 sm:gap-3">
                         {bulkMode && selectedTasks.size > 0 && (
