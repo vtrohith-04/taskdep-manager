@@ -49,6 +49,38 @@ const updateTaskSchema = z.object({
 
 router.use(protect);
 
+function getDepId(dep) {
+    return typeof dep === 'object' ? dep?._id : dep;
+}
+
+function isTaskBlocked(task, taskById) {
+    return task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some((dep) => {
+        const depTask = taskById.get(String(getDepId(dep)));
+        return depTask && depTask.status !== 'Done';
+    });
+}
+
+function getEffectiveStatus(task, taskById, threeDaysFromNow) {
+    if (isTaskBlocked(task, taskById)) return 'Blocked';
+    if (task.status === 'Done') return 'Done';
+
+    const isAutoInProgress = task.dueDate && new Date(task.dueDate) <= threeDaysFromNow;
+    if (task.status === 'In Progress' || isAutoInProgress) return 'In Progress';
+
+    return 'Todo';
+}
+
+function getEffectivePriority(task, now) {
+    if (task.priority === 'High') return 'High';
+    if (!task.dueDate) return task.priority || 'Medium';
+
+    const daysUntilDue = Math.ceil((new Date(task.dueDate) - now) / 86400000);
+    if (daysUntilDue <= 1) return 'High';
+    if (daysUntilDue <= 5) return 'Medium';
+
+    return task.priority || 'Low';
+}
+
 function computeStats(tasks) {
     const stats = {
         total: tasks.length,
@@ -64,23 +96,16 @@ function computeStats(tasks) {
     const taskById = new Map(tasks.map(t => [String(t._id), t]));
 
     tasks.forEach((task) => {
-        const isBlocked = task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some((dep) => {
-            const depId = typeof dep === 'object' ? dep._id : dep;
-            const depTask = taskById.get(String(depId));
-            return depTask && depTask.status !== 'Done';
-        });
+        const effectiveStatus = getEffectiveStatus(task, taskById, threeDaysFromNow);
 
-        if (isBlocked) {
+        if (effectiveStatus === 'Blocked') {
             stats.blocked++;
-        } else if (task.status === 'Done') {
+        } else if (effectiveStatus === 'Done') {
             stats.done++;
+        } else if (effectiveStatus === 'In Progress') {
+            stats.inProgress++;
         } else {
-            const isAutoInProgress = task.dueDate && new Date(task.dueDate) <= threeDaysFromNow;
-            if (task.status === 'In Progress' || isAutoInProgress) {
-                stats.inProgress++;
-            } else {
-                stats.todo++;
-            }
+            stats.todo++;
         }
     });
 
@@ -191,6 +216,13 @@ router.get('/analytics', async (req, res) => {
         let openAgeCount = 0;
         let overdueAgeTotal = 0;
         let overdueAgeCount = 0;
+        const notificationItems = new Map();
+        const notificationSummary = {
+            overdue: 0,
+            upcoming: 0,
+            highPriority: 0,
+            blockedUrgent: 0,
+        };
 
         allTasks.forEach((task) => {
             stats.priority[task.priority]++;
@@ -206,6 +238,68 @@ router.get('/analytics', async (req, res) => {
                 dependentCountMap[String(depId)] = (dependentCountMap[String(depId)] || 0) + 1;
                 return dep && dep.status !== 'Done';
             });
+            const effectiveStatus = getEffectiveStatus(task, taskById, threeDaysFromNow);
+            const effectivePriority = getEffectivePriority(task, now);
+            const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+            const daysUntilDue = dueDate ? Math.ceil((dueDate - now) / 86400000) : null;
+            const baseNotification = {
+                taskId: task._id,
+                title: task.title,
+                dueDate: task.dueDate,
+                status: effectiveStatus,
+                priority: effectivePriority,
+            };
+
+            const registerNotification = (item) => {
+                const existing = notificationItems.get(String(task._id));
+                if (!existing || item.rank < existing.rank) {
+                    notificationItems.set(String(task._id), item);
+                }
+            };
+
+            if (effectiveStatus !== 'Done' && dueDate) {
+                if (daysUntilDue < 0) {
+                    notificationSummary.overdue++;
+                    registerNotification({
+                        ...baseNotification,
+                        type: 'overdue',
+                        label: 'Overdue',
+                        rank: 0,
+                        message: `This task is overdue by ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) === 1 ? '' : 's'}.`,
+                    });
+                } else if (daysUntilDue <= 3) {
+                    notificationSummary.upcoming++;
+                    registerNotification({
+                        ...baseNotification,
+                        type: 'upcoming',
+                        label: 'Upcoming',
+                        rank: 2,
+                        message: `This task is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}.`,
+                    });
+                }
+            }
+
+            if (effectiveStatus !== 'Done' && effectivePriority === 'High') {
+                notificationSummary.highPriority++;
+                registerNotification({
+                    ...baseNotification,
+                    type: 'highPriority',
+                    label: 'High Priority',
+                    rank: 3,
+                    message: 'This task is currently marked as high priority.',
+                });
+            }
+
+            if (effectiveStatus === 'Blocked' && dueDate && daysUntilDue !== null && daysUntilDue <= 3) {
+                notificationSummary.blockedUrgent++;
+                registerNotification({
+                    ...baseNotification,
+                    type: 'blocked',
+                    label: 'Blocked Soon',
+                    rank: 1,
+                    message: 'This task is blocked while the deadline is close.',
+                });
+            }
 
             if (task.status === 'Done' && task.completedAt && task.createdAt) {
                 cycleTimeTotal += Math.max(1, Math.ceil((new Date(task.completedAt) - new Date(task.createdAt)) / 86400000));
@@ -295,11 +389,22 @@ router.get('/analytics', async (req, res) => {
             .filter((task) => task.status !== 'Done')
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
+        const notifications = {
+            summary: notificationSummary,
+            items: Array.from(notificationItems.values())
+                .sort((a, b) => {
+                    const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+                    const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+                    return a.rank - b.rank || dueA - dueB || a.title.localeCompare(b.title);
+                })
+                .slice(0, 8),
+        };
 
         res.json({
             stats,
             velocity: velocityData,
             bottlenecks,
+            notifications,
             trends: {
                 completedLast7,
                 completedPrevious7,

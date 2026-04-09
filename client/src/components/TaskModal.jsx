@@ -4,6 +4,7 @@ import { useTasks } from '../context/TaskContext';
 import api from '../api/axios';
 import { toast } from 'sonner';
 import TaskTemplates from './TaskTemplates';
+import { formatDateDMY } from '../utils/dateFormat';
 
 const defaultForm = {
     title: '',
@@ -415,7 +416,7 @@ export default function TaskModal({ isOpen, onClose, editTask, isViewOnly }) {
                         {isViewOnly ? (
                             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 px-1 font-medium">
                                 <Clock size={14} className="text-slate-400" />
-                                {form.dueDate ? new Date(form.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No due date'}
+                                {form.dueDate ? formatDateDMY(form.dueDate) : 'No due date'}
                             </div>
                         ) : (
                             <input

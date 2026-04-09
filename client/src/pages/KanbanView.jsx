@@ -13,6 +13,7 @@ import TaskModal from '../components/TaskModal';
 import { useTasks } from '../context/TaskContext';
 import { toast } from 'sonner';
 import KanbanSkeleton from '../components/KanbanSkeleton';
+import { formatDateDMY } from '../utils/dateFormat';
 
 const statusConfig = {
     Todo: {
@@ -65,7 +66,7 @@ function DraggableTaskCard({ task, onView, onEdit, onDelete }) {
         ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
         : {};
 
-    const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+    const dueDate = task.dueDate ? formatDateDMY(task.dueDate) : null;
     const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.effectiveStatus !== 'Done';
 
     return (

@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Plus, Download, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, Download, ChevronLeft, ChevronRight, ChevronDown, Bell } from 'lucide-react';
 import StatsBar from '../components/StatsBar';
 import SearchFilters from '../components/SearchFilters';
 import TaskCard from '../components/TaskCard';
 import TaskCardSkeleton from '../components/TaskCardSkeleton';
 import TaskModal from '../components/TaskModal';
+import NotificationPanel from '../components/NotificationPanel';
 import { useTasks } from '../context/TaskContext';
 import api from '../api/axios';
 import { toast } from 'sonner';
@@ -22,8 +23,20 @@ export default function Dashboard() {
     const [bulkMode, setBulkMode] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [exportMenuOpen, setExportMenuOpen] = useState(false);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [notificationsLoading, setNotificationsLoading] = useState(true);
+    const [notifications, setNotifications] = useState({
+        summary: {
+            upcoming: 0,
+            overdue: 0,
+            highPriority: 0,
+            blockedUrgent: 0,
+        },
+        items: [],
+    });
     const ITEMS_PER_PAGE = 12;
     const exportMenuRef = useRef(null);
+    const notificationsRef = useRef(null);
 
     function openAdd() { setEditTask(null); setIsViewOnly(false); setModalOpen(true); }
     function openEdit(task) { setEditTask(task); setIsViewOnly(false); setModalOpen(true); }
@@ -54,11 +67,32 @@ export default function Dashboard() {
             if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
                 setExportMenuOpen(false);
             }
+            if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+                setNotificationsOpen(false);
+            }
         };
 
         document.addEventListener('mousedown', handleOutsideClick);
         return () => document.removeEventListener('mousedown', handleOutsideClick);
     }, []);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            setNotificationsLoading(true);
+            try {
+                const { data } = await api.get('/tasks/analytics');
+                if (data?.notifications) {
+                    setNotifications(data.notifications);
+                }
+            } catch (_err) {
+                toast.error('Failed to load notifications');
+            } finally {
+                setNotificationsLoading(false);
+            }
+        };
+
+        fetchNotifications();
+    }, [tasks]);
 
     const filtered = useMemo(() => {
         return tasks.filter((t) => {
@@ -103,6 +137,7 @@ export default function Dashboard() {
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
     const paginatedTasks = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    const notificationCount = notifications.items.length;
 
     const handleDelete = async (id) => {
         if (window.confirm('Delete this task?')) await deleteTask(id);
@@ -260,6 +295,25 @@ export default function Dashboard() {
                                             {format.toUpperCase()}
                                         </button>
                                     ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="relative" ref={notificationsRef}>
+                            <button
+                                onClick={() => setNotificationsOpen((open) => !open)}
+                                className="relative flex items-center justify-center w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+                                aria-label="Open notifications"
+                            >
+                                <Bell size={18} />
+                                {notificationCount > 0 && (
+                                    <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1.5 rounded-full bg-gradient-to-r from-rose-500 to-orange-500 text-white text-[11px] font-bold flex items-center justify-center shadow-lg">
+                                        {notificationCount}
+                                    </span>
+                                )}
+                            </button>
+                            {notificationsOpen && (
+                                <div className="absolute right-0 mt-3 w-[min(92vw,34rem)] z-30">
+                                    <NotificationPanel notifications={notifications} loading={notificationsLoading} compact />
                                 </div>
                             )}
                         </div>

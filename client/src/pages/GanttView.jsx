@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Calendar, AlertCircle, Clock3, Filter, Layers3 } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
+import { formatDateDMY } from '../utils/dateFormat';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DAY_WIDTH = 34;
@@ -30,7 +31,7 @@ function clamp(value, min, max) {
 }
 
 function formatShortDate(value) {
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return formatDateDMY(value);
 }
 
 function formatMonthLabel(value) {

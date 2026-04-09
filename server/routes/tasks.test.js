@@ -296,6 +296,9 @@ describe('Tasks API Routes', () => {
             expect(res.statusCode).toBe(200);
             expect(res.body.trends).toBeDefined();
             expect(res.body.execution).toBeDefined();
+            expect(res.body.notifications).toBeDefined();
+            expect(res.body.notifications.summary).toBeDefined();
+            expect(Array.isArray(res.body.notifications.items)).toBe(true);
             expect(Array.isArray(res.body.priorityStatusMatrix)).toBe(true);
             expect(res.body.execution.averageCycleDays).toBeGreaterThanOrEqual(1);
             expect(res.body.execution.onTimeCompletionRate).toBeGreaterThanOrEqual(0);

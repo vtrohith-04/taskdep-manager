@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 import { toast } from 'sonner';
+import { formatDateDMY, formatDateTimeDMY } from '../utils/dateFormat';
 
 const STATUS_COLORS = {
   Todo: '#94a3b8',
@@ -51,10 +52,6 @@ const ACTIVITY_FILTERS = ['All', 'Created', 'Updated', 'Deleted', 'Restored'];
 function formatDelta(value) {
   if (value === 0) return 'No change';
   return `${value > 0 ? '+' : ''}${value}`;
-}
-
-function formatShortDate(value) {
-  return new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
 function getActivityMeta(description = '') {
@@ -342,7 +339,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis
                   dataKey="date"
-                  tickFormatter={formatShortDate}
+                  tickFormatter={formatDateDMY}
                   fontSize={11}
                   tick={{ fill: '#94a3b8' }}
                   axisLine={false}
@@ -351,7 +348,7 @@ export default function Analytics() {
                 <YAxis fontSize={11} tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip
                   formatter={(value) => [`${value} completed`, 'Tasks']}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                  labelFormatter={(label) => formatDateDMY(label)}
                   contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', color: '#fff' }}
                 />
                 <Area type="monotone" dataKey="completed" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#analyticsVelocity)" />
@@ -481,7 +478,7 @@ export default function Analytics() {
                     {task.title}
                   </p>
                   <p className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-300">
-                    Due {new Date(task.dueDate).toLocaleDateString()}
+                    Due {formatDateDMY(task.dueDate)}
                   </p>
                 </div>
               ))
@@ -582,7 +579,7 @@ export default function Analytics() {
                       </span>
                     </div>
                     <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatDateTimeDMY(activity.createdAt)}
                     </p>
                   </div>
                 </div>

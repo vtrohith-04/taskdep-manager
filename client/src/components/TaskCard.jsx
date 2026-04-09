@@ -1,4 +1,5 @@
 import { Calendar, Clock, GitFork, Pencil, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X, FileText, Paperclip } from 'lucide-react';
+import { formatDateDMY } from '../utils/dateFormat';
 
 const priorityColors = {
     High: 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 dark:from-red-900/40 dark:to-orange-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50 font-semibold',
@@ -15,9 +16,7 @@ const statusColors = {
 
 function formatDate(dateStr) {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric',
-    });
+    return formatDateDMY(dateStr);
 }
 
 function isDueOverdue(dueDate) {
